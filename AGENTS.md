@@ -21,6 +21,7 @@
 | Deep equality    | [`fast-deep-equal`](https://github.com/epoberezkin/fast-deep-equal) |
 | File discovery   | `Bun.Glob` (built-in — no extra dep)                            |
 | Testing          | `bun:test` (built-in)                                           |
+| Lint & Format    | [`Biome`](https://biomejs.dev)                                  |
 
 **Runtime target:** Kener v4 REST API (`/api/v4/…`).
 
@@ -123,6 +124,7 @@ Once changes are complete, use the **`git-commit`** skill to:
 - **No default exports** — use named exports only.
 - **File naming** — kebab-case for files (`alert-configs.ts`, `cli-table3`), camelCase for functions and variables.
 - **Import paths** — use `@/` alias for `src/` (configured in `tsconfig.json` paths).
+- **Code quality** — formatting and linting are enforced by [Biome](https://biomejs.dev). Run `bun run check` before committing.
 
 ### Schemas & Validation
 
@@ -242,12 +244,14 @@ All commands are registered in `src/cli/index.ts` via `citty`'s `defineCommand` 
 Before pushing or considering work complete, run:
 
 ```bash
-bun run typecheck   # tsc --noEmit
-bun test            # bun test
-bun run build       # bun build src/cli/index.ts --outdir dist --target bun
+bun run typecheck     # tsc --noEmit
+bun run lint          # biome lint .
+bun run format:check  # biome format .
+bun test              # bun test
+bun run build         # bun build src/cli/index.ts --outdir dist --target bun
 ```
 
-All three must pass with zero errors.
+All five must pass with zero errors. The CI workflow (`.github/workflows/ci.yml`) enforces these on every push and PR to `main`.
 
 ---
 
