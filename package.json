@@ -9,7 +9,13 @@
     "dev": "bun run src/cli/index.ts",
     "build": "bun build src/cli/index.ts --outdir dist --target bun --external node-fetch-native --external giget",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "check": "biome check .",
+    "check:fix": "biome check --write ."
   },
   "dependencies": {
     "chalk": "^5.6.2",
@@ -22,6 +28,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.0",
     "@types/js-yaml": "^4.0.9",
     "bun-types": "latest",
     "typescript": "^5.9.3"
