@@ -14,7 +14,7 @@
 | HTTP client      | [`ky`](https://github.com/sindresorhus/ky)                      |
 | Schema / validation | [`zod`](https://zod.dev)                                     |
 | YAML parsing     | [`js-yaml`](https://github.com/nodeca/js-yaml)                  |
-| Config loader    | [`c12`](https://github.com/unjs/c12)                            |
+| Config loader    | `js-yaml` + `node:fs` (XDG `~/.config/kener-ctl/config.yaml`) |
 | Logging          | [`consola`](https://github.com/unjs/consola)                    |
 | Terminal colour  | [`chalk`](https://github.com/chalk/chalk)                       |
 | Table rendering  | [`cli-table3`](https://github.com/cli-table/cli-table3)         |
@@ -39,7 +39,7 @@ kener-ctl/
 │   │   ├── pull.ts
 │   │   ├── get.ts
 │   │   └── delete.ts
-│   ├── config/           # kener-ctl.yaml loader & context
+│   ├── config/           # Context-aware config loader & schema
 │   │   ├── loader.ts
 │   │   └── schema.ts
 │   ├── manifest/         # YAML state file parsing & validation
@@ -74,7 +74,7 @@ kener-ctl/
 │       └── errors.ts
 ├── tests/                # Tests mirror src/ structure
 ├── state/                # Example directory for resource manifests
-├── kener-ctl.yaml        # Default config file
+├── kener-ctl.yaml        # Example config file (not used; real config is at XDG path)
 ├── package.json
 └── tsconfig.json
 ```
@@ -143,7 +143,7 @@ Once changes are complete, use the **`git-commit`** skill to:
 - Each resource kind has its own reconciler in `src/reconciler/resources/`.
 - Diff logic (`diff.ts`) compares desired (manifests) vs. actual (API state) and produces `Change<T>` entries.
 - Strip server-only fields (`id`, `createdAt`, `updatedAt`) before comparison to avoid spurious updates.
-- `.kener-ctl-state.json` maps stable manifest names to remote integer IDs for resources that lack a string key.
+- State file maps stable manifest names to remote integer IDs for resources that lack a string key, stored per-context at `~/.config/kener-ctl/state/<context>.json`.
 
 ### Reconcile Order (dependency-aware)
 
@@ -164,8 +164,8 @@ Apply in order; delete in reverse:
 | Page          | `metadata.path`    | `path` field (`~home` for root)         |
 | AlertTrigger  | `metadata.name`    | `name` field                            |
 | AlertConfig   | `metadata.name`    | Composite or `name` (via state file)    |
-| Incident      | `metadata.name`    | `title` (via `.kener-ctl-state.json`)   |
-| Maintenance   | `metadata.name`    | (via `.kener-ctl-state.json`)           |
+| Incident      | `metadata.name`    | `title` (via state file)                |
+| Maintenance   | `metadata.name`    | (via state file)                        |
 
 ### Output & UX
 
@@ -253,14 +253,15 @@ All three must pass with zero errors.
 
 ## 9. Configuration
 
-Project configuration lives in `kener-ctl.yaml` (loaded via `c12`). Environment variables (`KENER_URL`, `KENER_API_KEY`) override file values.
+User configuration lives at `~/.config/kener-ctl/config.yaml` (XDG config directory). This file contains named **contexts** (each bundling an `instance` URL and `apiKey`), a `current-context` pointer, and global `defaults`. Context can be overridden via the `--context` CLI flag or `KENER_CONTEXT` env var.
 
 Key fields:
-- `instance` — Kener base URL (required)
-- `apiKey` — API key (required)
-- `stateDir` — root directory for manifest files (default: `./state`)
-- `dryRun` — plan only, never mutate (default: `false`)
-- `deleteOrphans` — prune remote resources absent from state (default: `false`)
-- `concurrency` — parallel API calls during apply (default: `4`)
+- `version` — config schema version (literal `1`)
+- `current-context` — default context name
+- `contexts` — array of context objects (`name`, `instance`, `apiKey`)
+- `defaults.stateDir` — root directory for manifest files (default: `./state`)
+- `defaults.dryRun` — plan only, never mutate (default: `false`)
+- `defaults.deleteOrphans` — prune remote resources absent from state (default: `false`)
+- `defaults.concurrency` — parallel API calls during apply (default: `4`)
 
 Config schema is validated with Zod at startup. Missing required fields produce a formatted error and non-zero exit.

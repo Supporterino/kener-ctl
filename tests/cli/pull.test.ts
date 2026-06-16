@@ -18,8 +18,8 @@ describe("pull command definition", () => {
     expect(args()).toHaveProperty("kind");
   });
 
-  it("includes config arg", () => {
-    expect(args()).toHaveProperty("config");
+  it("includes context arg", () => {
+    expect(args()).toHaveProperty("context");
   });
 
   it("includes state-dir arg", () => {

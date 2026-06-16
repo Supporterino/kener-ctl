@@ -22,10 +22,10 @@ export const pathArg = {
   description: "Target a single page by path",
 };
 
-export const configArg = {
+export const contextArg = {
   type: "string" as const,
-  description: "Path to kener-ctl.yaml config file",
-  valueHint: "path",
+  description: "Kener context to use (overrides current-context and KENER_CONTEXT)",
+  valueHint: "name",
 };
 
 export const stateDirArg = {

@@ -1,7 +1,7 @@
 import { defineCommand } from "citty";
 import { consola } from "consola";
 import chalk from "chalk";
-import { loadConfig } from "@/config/loader";
+import { loadConfig, stateFilePath } from "@/config/loader";
 import { createKenerClient } from "@/api/client";
 import { reconcile } from "@/reconciler/engine";
 import { printApplySummary } from "@/output/printer";
@@ -9,7 +9,7 @@ import { printPlanTable } from "@/output/printer";
 import type { PlanRow } from "@/output/printer";
 import { ValidationError, ConfigError, NetworkError } from "@/util/errors";
 import {
-  kindArg, tagArg, nameArg, pathArg, configArg, stateDirArg,
+  kindArg, tagArg, nameArg, pathArg, contextArg, stateDirArg,
   dryRunFlag, deleteOrphansFlag, isValidKind, formatKind,
 } from "./shared";
 
@@ -23,7 +23,7 @@ export const applyCommand = defineCommand({
     tag: tagArg,
     name: nameArg,
     path: pathArg,
-    config: configArg,
+    context: contextArg,
     "state-dir": stateDirArg,
     "dry-run": dryRunFlag,
     "delete-orphans": deleteOrphansFlag,
@@ -31,22 +31,22 @@ export const applyCommand = defineCommand({
   async run({ args }) {
     try {
       const config = await loadConfig({
-        configPath: args.config,
-        overrides: {
-          stateDir: args["state-dir"] ?? undefined,
-          dryRun: args["dry-run"] ?? undefined,
-          deleteOrphans: args["delete-orphans"] ?? undefined,
-        },
+        context: args.context,
       });
+
+      const resolvedStateDir = args["state-dir"] ?? config.stateDir;
+      const resolvedDryRun = args["dry-run"] ?? config.dryRun;
+      const resolvedDeleteOrphans = args["delete-orphans"] ?? config.deleteOrphans;
 
       const client = createKenerClient(config.instance, config.apiKey);
 
       const result = await reconcile({
         client,
-        stateDir: config.stateDir,
-        dryRun: config.dryRun,
-        deleteOrphans: config.deleteOrphans,
+        stateDir: resolvedStateDir,
+        dryRun: resolvedDryRun,
+        deleteOrphans: resolvedDeleteOrphans,
         concurrency: config.concurrency,
+        stateFilePath: stateFilePath(config.contextName),
         kind: args.kind ? formatKind(args.kind) : undefined,
         tag: args.tag,
         name: args.name,
@@ -61,7 +61,7 @@ export const applyCommand = defineCommand({
         process.exit(1);
       }
 
-      if (config.dryRun) {
+      if (resolvedDryRun) {
         printPlanTable(result.changes as PlanRow[]);
       } else {
         printApplySummary(result.results);

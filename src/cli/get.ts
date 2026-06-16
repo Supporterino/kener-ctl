@@ -12,7 +12,7 @@ import { createMaintenancesApi } from "@/api/maintenances";
 import { printResourceList, printResourceDetails } from "@/output/printer";
 import type { AnyManifest } from "@/manifest/types";
 import { ConfigError, NetworkError } from "@/util/errors";
-import { configArg, outputArg, formatKind, isValidKind } from "./shared";
+import { contextArg, outputArg, formatKind, isValidKind } from "./shared";
 
 export const getCommand = defineCommand({
   meta: {
@@ -31,13 +31,13 @@ export const getCommand = defineCommand({
       description: "Resource identifier (tag, path, name, or ID)",
       valueHint: "my-api",
     },
-    config: configArg,
+    context: contextArg,
     output: outputArg,
   },
   async run({ args }) {
     try {
       const config = await loadConfig({
-        configPath: args.config,
+        context: args.context,
       });
 
       const client = createKenerClient(config.instance, config.apiKey);

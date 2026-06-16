@@ -1,119 +1,195 @@
 import { describe, it, expect } from "bun:test";
-import { ConfigSchema } from "@/config/schema";
+import { ConfigSchema, ContextSchema, DefaultsSchema } from "@/config/schema";
 
-describe("ConfigSchema", () => {
-  it("validates a complete config", () => {
-    const result = ConfigSchema.safeParse({
+describe("ContextSchema", () => {
+  it("validates a valid context", () => {
+    const result = ContextSchema.safeParse({
+      name: "prod",
       instance: "https://status.example.com",
       apiKey: "key-123",
     });
     expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.instance).toBe("https://status.example.com");
-      expect(result.data.apiKey).toBe("key-123");
-    }
   });
 
-  it("applies defaults when optional fields missing", () => {
-    const result = ConfigSchema.safeParse({
+  it("rejects empty name", () => {
+    const result = ContextSchema.safeParse({
+      name: "",
       instance: "https://status.example.com",
       apiKey: "key-123",
     });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.stateDir).toBe("./state");
-      expect(result.data.dryRun).toBe(false);
-      expect(result.data.deleteOrphans).toBe(false);
-      expect(result.data.concurrency).toBe(4);
-    }
-  });
-
-  it("rejects when instance is missing", () => {
-    const result = ConfigSchema.safeParse({
-      apiKey: "key-123",
-    });
     expect(result.success).toBe(false);
   });
 
-  it("rejects when apiKey is missing", () => {
-    const result = ConfigSchema.safeParse({
-      instance: "https://status.example.com",
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects when both required fields missing", () => {
-    const result = ConfigSchema.safeParse({});
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects invalid URL for instance", () => {
-    const result = ConfigSchema.safeParse({
+  it("rejects invalid URLs", () => {
+    const result = ContextSchema.safeParse({
+      name: "prod",
       instance: "not-a-url",
       apiKey: "key-123",
     });
     expect(result.success).toBe(false);
   });
 
-  it("rejects empty string for apiKey", () => {
-    const result = ConfigSchema.safeParse({
+  it("rejects empty apiKey", () => {
+    const result = ContextSchema.safeParse({
+      name: "prod",
       instance: "https://status.example.com",
       apiKey: "",
     });
     expect(result.success).toBe(false);
   });
+});
 
-  it("rejects non-integer concurrency", () => {
-    const result = ConfigSchema.safeParse({
-      instance: "https://status.example.com",
-      apiKey: "key-123",
-      concurrency: 3.5,
+describe("DefaultsSchema", () => {
+  it("applies all defaults when empty", () => {
+    const result = DefaultsSchema.safeParse({});
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.stateDir).toBe("./state");
+      expect(result.data.concurrency).toBe(4);
+      expect(result.data.dryRun).toBe(false);
+      expect(result.data.deleteOrphans).toBe(false);
+    }
+  });
+
+  it("allows partial defaults", () => {
+    const result = DefaultsSchema.safeParse({
+      stateDir: "./custom",
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.stateDir).toBe("./custom");
+      expect(result.data.concurrency).toBe(4);
+    }
   });
 
   it("rejects concurrency below 1", () => {
-    const result = ConfigSchema.safeParse({
-      instance: "https://status.example.com",
-      apiKey: "key-123",
-      concurrency: 0,
-    });
+    const result = DefaultsSchema.safeParse({ concurrency: 0 });
     expect(result.success).toBe(false);
   });
 
   it("rejects concurrency above 20", () => {
+    const result = DefaultsSchema.safeParse({ concurrency: 21 });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects non-integer concurrency", () => {
+    const result = DefaultsSchema.safeParse({ concurrency: 3.5 });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("ConfigSchema", () => {
+  const validConfig = {
+    version: 1 as const,
+    "current-context": "prod",
+    contexts: [
+      { name: "prod", instance: "https://status.prod.example.com", apiKey: "sk-prod" },
+      { name: "staging", instance: "https://status.staging.example.com", apiKey: "sk-staging" },
+    ],
+  };
+
+  it("validates a complete valid config", () => {
+    const result = ConfigSchema.safeParse(validConfig);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data["current-context"]).toBe("prod");
+      expect(result.data.contexts).toHaveLength(2);
+    }
+  });
+
+  it("applies defaults when defaults block is omitted", () => {
+    const result = ConfigSchema.safeParse(validConfig);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.defaults.stateDir).toBe("./state");
+      expect(result.data.defaults.concurrency).toBe(4);
+    }
+  });
+
+  it("uses provided defaults", () => {
     const result = ConfigSchema.safeParse({
-      instance: "https://status.example.com",
-      apiKey: "key-123",
-      concurrency: 21,
+      ...validConfig,
+      defaults: { stateDir: "./foo", concurrency: 8, dryRun: true, deleteOrphans: true },
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.defaults.stateDir).toBe("./foo");
+      expect(result.data.defaults.concurrency).toBe(8);
+    }
+  });
+
+  it("rejects when version is missing", () => {
+    const { version, ...rest } = validConfig;
+    const result = ConfigSchema.safeParse(rest);
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects unknown version", () => {
+    const result = ConfigSchema.safeParse({ ...validConfig, version: 2 });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects duplicate context names", () => {
+    const result = ConfigSchema.safeParse({
+      version: 1,
+      "current-context": "prod",
+      contexts: [
+        { name: "prod", instance: "https://status.prod.example.com", apiKey: "sk-prod" },
+        { name: "prod", instance: "https://status.staging.example.com", apiKey: "sk-staging" },
+      ],
     });
     expect(result.success).toBe(false);
   });
 
-  it("allows valid concurrency values", () => {
+  it("rejects current-context that doesn't match any context", () => {
     const result = ConfigSchema.safeParse({
-      instance: "https://status.example.com",
-      apiKey: "key-123",
-      concurrency: 8,
+      ...validConfig,
+      "current-context": "unknown",
     });
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
   });
 
-  it("accepts all optional fields", () => {
+  it("rejects empty contexts array", () => {
     const result = ConfigSchema.safeParse({
-      instance: "https://status.example.com",
-      apiKey: "key-123",
-      stateDir: "./custom-state",
-      dryRun: true,
-      deleteOrphans: true,
-      concurrency: 10,
+      version: 1,
+      "current-context": "prod",
+      contexts: [],
     });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.stateDir).toBe("./custom-state");
-      expect(result.data.dryRun).toBe(true);
-      expect(result.data.deleteOrphans).toBe(true);
-      expect(result.data.concurrency).toBe(10);
-    }
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects context with missing fields", () => {
+    const result = ConfigSchema.safeParse({
+      version: 1,
+      "current-context": "prod",
+      contexts: [{ name: "prod" }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects context with empty apiKey", () => {
+    const result = ConfigSchema.safeParse({
+      version: 1,
+      "current-context": "prod",
+      contexts: [{ name: "prod", instance: "https://status.example.com", apiKey: "" }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects context with invalid instance URL", () => {
+    const result = ConfigSchema.safeParse({
+      version: 1,
+      "current-context": "prod",
+      contexts: [{ name: "prod", instance: "not-a-url", apiKey: "sk-123" }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts empty string for current-context", () => {
+    const result = ConfigSchema.safeParse({
+      ...validConfig,
+      "current-context": "",
+    });
+    expect(result.success).toBe(false);
   });
 });

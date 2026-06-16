@@ -5,7 +5,7 @@ import { loadConfig } from "@/config/loader";
 import { validateManifests } from "@/manifest/loader";
 import { printValidationErrors } from "@/output/printer";
 import { ConfigError } from "@/util/errors";
-import { configArg, stateDirArg } from "./shared";
+import { contextArg, stateDirArg } from "./shared";
 
 export const validateCommand = defineCommand({
   meta: {
@@ -13,21 +13,29 @@ export const validateCommand = defineCommand({
     description: "Parse and validate all manifest files without making API calls",
   },
   args: {
-    config: configArg,
+    context: contextArg,
     "state-dir": stateDirArg,
   },
   async run({ args }) {
     try {
       let stateDir = args["state-dir"] ?? "./state";
 
-      if (args.config) {
+      try {
         const config = await loadConfig({
-          configPath: args.config,
-          overrides: {
-            stateDir: args["state-dir"] ?? undefined,
-          },
+          context: args.context,
         });
-        stateDir = config.stateDir;
+        stateDir = args["state-dir"] ?? config.stateDir;
+      } catch (err) {
+        if (err instanceof ConfigError) {
+          if (!args["state-dir"] && !args.context) {
+            consola.info("No config file found, using default stateDir: ./state");
+          } else {
+            consola.error(err.toString());
+            process.exit(1);
+          }
+        } else {
+          throw err;
+        }
       }
 
       const { valid, errors } = validateManifests(stateDir);

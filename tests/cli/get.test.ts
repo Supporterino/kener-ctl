@@ -25,8 +25,8 @@ describe("get command definition", () => {
     expect(id.type).toBe("positional");
   });
 
-  it("has config arg", () => {
-    expect(args()).toHaveProperty("config");
+  it("has context arg", () => {
+    expect(args()).toHaveProperty("context");
   });
 
   it("has output arg with default table", () => {

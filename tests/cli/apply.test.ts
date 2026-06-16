@@ -26,9 +26,9 @@ describe("apply command definition", () => {
     expect(args).toHaveProperty("delete-orphans");
   });
 
-  it("includes config arg", () => {
+  it("includes context arg", () => {
     const args = (applyCommand as unknown as { args: Record<string, unknown> }).args;
-    expect(args).toHaveProperty("config");
+    expect(args).toHaveProperty("context");
   });
 
   it("includes state-dir arg", () => {

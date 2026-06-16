@@ -1,10 +1,22 @@
 # config-loading
 
-## Purpose
+Delta spec for changes to the configuration loading system.
 
-TBD
+## REMOVED Requirements
 
-## Requirements
+### Requirement: Load configuration from kener-ctl.yaml
+**Reason**: Config location moved from CWD-relative (via `c12`) to fixed XDG config path (`~/.config/kener-ctl/config.yaml`).
+**Migration**: Move your `kener-ctl.yaml` contents to `~/.config/kener-ctl/config.yaml` using the new context-based schema. See `context-config` spec for schema details.
+
+### Requirement: Override config with environment variables
+**Reason**: `KENER_URL` and `KENER_API_KEY` no longer apply in a multi-context world. Replaced by `KENER_CONTEXT` which selects the active context.
+**Migration**: Set `KENER_CONTEXT=<name>` to select which context to use, rather than overriding individual instance/API key fields.
+
+### Requirement: Override config via CLI flags
+**Reason**: The `--config` flag to specify a custom config file path is removed; config now lives at a fixed XDG location.
+**Migration**: Use `--context` to select the context instead of pointing to a different config file.
+
+## MODIFIED Requirements
 
 ### Requirement: Validate configuration schema
 The system SHALL validate the loaded configuration against a Zod schema. The schema SHALL include a `version` field (literal `1`), a `contexts` array of context objects (each with `name`, `instance` URL, and `apiKey` string), a `current-context` string that MUST match one of the defined context names, and an optional `defaults` block. Duplicate context names SHALL be rejected. If no config file exists, commands requiring a context SHALL exit with code 1 and a message indicating the config file is missing.
@@ -43,6 +55,8 @@ The system SHALL produce a validated, typed `ResolvedConfig` object that flatten
 #### Scenario: State file path derived from context name
 - **WHEN** the active context is `prod`
 - **THEN** the state file path is `~/.config/kener-ctl/state/prod.json`, independent of `stateDir`
+
+## ADDED Requirements
 
 ### Requirement: Context resolution priority
 The system SHALL resolve the active context using the following priority: (1) `--context` CLI flag, (2) `KENER_CONTEXT` environment variable, (3) `current-context` in the config file. If none resolve to a valid configured context, the command SHALL exit with code 1.

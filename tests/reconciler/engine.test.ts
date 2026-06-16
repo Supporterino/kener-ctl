@@ -6,10 +6,13 @@ import { reconcile, plan, loadStateFile, saveStateFile } from "@/reconciler/engi
 import type { KyInstance } from "ky";
 
 let baseDir: string;
+let stateDir: string;
 
 beforeAll(() => {
   baseDir = join(tmpdir(), `kener-ctl-engine-${Date.now()}`);
   mkdirSync(baseDir, { recursive: true });
+  stateDir = join(baseDir, "state", "test");
+  mkdirSync(stateDir, { recursive: true });
 });
 
 afterAll(() => {
@@ -19,9 +22,13 @@ afterAll(() => {
 });
 
 function createStateDir(name: string): string {
-  const dir = join(baseDir, name, "state");
+  const dir = join(baseDir, "state_" + name);
   mkdirSync(dir, { recursive: true });
   return dir;
+}
+
+function stateFilePathForDir(dir: string): string {
+  return join(baseDir, "state_file_" + dir.split("_").pop() + ".json");
 }
 
 function writeManifest(stateDir: string, filename: string, content: string) {
@@ -59,8 +66,9 @@ describe("engine reconcile", () => {
     const dir = createStateDir("invalid");
     writeManifest(dir, "bad.yaml", "kind: Monitor\nmetadata: {}\nspec:\n  type: INVALID");
     const client = createMockKy();
+    const sfp = stateFilePathForDir(dir);
     await expect(
-      reconcile({ client, stateDir: dir, dryRun: true, deleteOrphans: false, concurrency: 4 })
+      reconcile({ client, stateDir: dir, dryRun: true, deleteOrphans: false, concurrency: 4, stateFilePath: sfp })
     ).rejects.toThrow("Manifest validation failed");
   });
 
@@ -74,8 +82,9 @@ spec:
   name: My API
   type: API`);
     const client = createMockKy();
+    const sfp = stateFilePathForDir(dir);
     const result = await reconcile({
-      client, stateDir: dir, dryRun: false, deleteOrphans: false, concurrency: 4,
+      client, stateDir: dir, dryRun: false, deleteOrphans: false, concurrency: 4, stateFilePath: sfp,
     });
     expect(result.changes.length).toBeGreaterThan(0);
     expect(result.changes.some((c) => c.action === "CREATE")).toBe(true);
@@ -98,11 +107,11 @@ spec:
   name: Other
   type: API`);
     const client = createMockKy();
+    const sfp = stateFilePathForDir(dir);
     const result = await reconcile({
-      client, stateDir: dir, dryRun: false, deleteOrphans: false, concurrency: 4,
+      client, stateDir: dir, dryRun: false, deleteOrphans: false, concurrency: 4, stateFilePath: sfp,
       kind: "AlertTrigger",
     });
-    // Only AlertTrigger changes, Monitor is filtered
     expect(result.changes.length).toBeGreaterThan(0);
     expect(result.changes.every((c) => c.kind === "AlertTrigger")).toBe(true);
   });
@@ -117,8 +126,9 @@ spec:
   name: Plan Test
   type: API`);
     const client = createMockKy();
+    const sfp = stateFilePathForDir(dir);
     const result = await plan({
-      client, stateDir: dir, dryRun: true, deleteOrphans: false, concurrency: 4,
+      client, stateDir: dir, dryRun: true, deleteOrphans: false, concurrency: 4, stateFilePath: sfp,
     });
     expect(result.changes.length).toBeGreaterThan(0);
     expect(result.changes.some((c) => c.action === "CREATE")).toBe(true);
@@ -127,8 +137,9 @@ spec:
   it("plan returns empty when no manifests", async () => {
     const dir = createStateDir("empty");
     const client = createMockKy();
+    const sfp = stateFilePathForDir(dir);
     const result = await plan({
-      client, stateDir: dir, dryRun: true, deleteOrphans: false, concurrency: 4,
+      client, stateDir: dir, dryRun: true, deleteOrphans: false, concurrency: 4, stateFilePath: sfp,
     });
     expect(result.changes).toHaveLength(0);
   });
@@ -196,8 +207,9 @@ spec:
   startDatetime: "2025-06-16T00:00:00.000Z"
   endDatetime: "2025-06-16T02:00:00.000Z"`);
 
+    const sfp = stateFilePathForDir(dir);
     await reconcile({
-      client: mockClient, stateDir: dir, dryRun: false, deleteOrphans: false, concurrency: 4,
+      client: mockClient, stateDir: dir, dryRun: false, deleteOrphans: false, concurrency: 4, stateFilePath: sfp,
     });
 
     expect(callOrder[0]).toBe("alert-triggers");
@@ -211,21 +223,21 @@ spec:
 
 describe("state file management", () => {
   it("loadStateFile returns null when file does not exist", () => {
-    const dir = createStateDir("nostate");
-    const state = loadStateFile(dir);
+    const path = join(baseDir, "nonexistent.json");
+    const state = loadStateFile(path);
     expect(state).toBeNull();
   });
 
   it("saveStateFile and loadStateFile round-trip all sections", () => {
-    const dir = createStateDir("roundtrip");
+    const path = join(baseDir, "roundtrip.json");
     const state = {
       version: 1,
       incidents: { "outage-1": 42 },
       maintenances: { "maint-1": 7 },
       alertConfigs: { "cfg-1": 3 },
     };
-    saveStateFile(dir, state);
-    const loaded = loadStateFile(dir);
+    saveStateFile(path, state);
+    const loaded = loadStateFile(path);
     expect(loaded).not.toBeNull();
     expect(loaded!.version).toBe(1);
     expect(loaded!.incidents).toEqual({ "outage-1": 42 });
@@ -233,10 +245,10 @@ describe("state file management", () => {
     expect(loaded!.alertConfigs).toEqual({ "cfg-1": 3 });
   });
 
-  it("state file is saved to parent directory of stateDir", () => {
-    const dir = createStateDir("parentcheck");
-    saveStateFile(dir, { version: 1 });
-    expect(existsSync(join(dir, "..", ".kener-ctl-state.json"))).toBe(true);
+  it("saveStateFile creates parent directories and saves file", () => {
+    const path = join(baseDir, "nested", "state.json");
+    saveStateFile(path, { version: 1 });
+    expect(existsSync(path)).toBe(true);
   });
 });
 
@@ -278,8 +290,9 @@ spec:
   type: SLACK
   webhookUrl: https://example.com`);
 
+    const sfp = stateFilePathForDir(dir);
     const result = await reconcile({
-      client: errorClient, stateDir: dir, dryRun: false, deleteOrphans: false, concurrency: 4,
+      client: errorClient, stateDir: dir, dryRun: false, deleteOrphans: false, concurrency: 4, stateFilePath: sfp,
     });
 
     expect(result.errors.length).toBeGreaterThan(0);
@@ -318,8 +331,9 @@ spec:
   type: DISCORD
   webhookUrl: https://discord.com/updated`);
 
+    const sfp = stateFilePathForDir(dir);
     const result = await reconcile({
-      client: errorClient, stateDir: dir, dryRun: false, deleteOrphans: false, concurrency: 4,
+      client: errorClient, stateDir: dir, dryRun: false, deleteOrphans: false, concurrency: 4, stateFilePath: sfp,
     });
 
     const failed = result.results.filter((r) => !r.success);

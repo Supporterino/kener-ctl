@@ -5,6 +5,7 @@ import { validateCommand } from "./validate";
 import { pullCommand } from "./pull";
 import { getCommand } from "./get";
 import { deleteCommand } from "./delete";
+import { configCommand } from "./config";
 import { verboseFlag } from "./shared";
 
 const mainCommand = defineCommand({
@@ -23,6 +24,7 @@ const mainCommand = defineCommand({
     pull: pullCommand,
     get: getCommand,
     delete: deleteCommand,
+    config: configCommand,
   },
 });
 

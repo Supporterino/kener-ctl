@@ -62,21 +62,29 @@ The system SHALL use `metadata.path` as the stable key for matching Page manifes
 The system SHALL use `metadata.name` as the stable key for matching AlertTrigger manifests to remote triggers.
 
 ### Requirement: Reconcile AlertConfigs via state identity file
-The system SHALL use `metadata.name` as the stable local key for AlertConfigs, looking up the remote integer ID from `.kener-ctl-state.json`. If no mapping exists, the config is treated as a new CREATE.
+The system SHALL use `metadata.name` as the stable local key for AlertConfigs, looking up the remote integer ID from the state file at `~/.config/kener-ctl/state/<context-name>.json`. If no mapping exists, the config is treated as a new CREATE. The state file path SHALL be passed to the reconciler as a parameter, not derived from `stateDir`.
 
 #### Scenario: AlertConfig has existing state mapping
-- **WHEN** `metadata.name: api-down-critical` has an entry in `.kener-ctl-state.json` mapping to remote ID 3
+- **WHEN** `metadata.name: api-down-critical` has an entry in the state file mapping to remote ID 3
 - **THEN** the reconciler fetches the remote AlertConfig with ID 3 for comparison
 
 #### Scenario: AlertConfig has no state mapping
-- **WHEN** `metadata.name: api-down-critical` has no entry in `.kener-ctl-state.json`
+- **WHEN** `metadata.name: api-down-critical` has no entry in the state file
 - **THEN** the reconciler searches remote AlertConfigs for a matching composite (monitorTag + alertType + alertValue) or treats it as CREATE if not found
 
 ### Requirement: Reconcile Incidents via state identity file
-The system SHALL use `metadata.name` as the stable local key for Incidents, looking up the remote integer ID from `.kener-ctl-state.json`.
+The system SHALL use `metadata.name` as the stable local key for Incidents, looking up the remote integer ID from the state file at `~/.config/kener-ctl/state/<context-name>.json`. The state file path SHALL be passed to the reconciler as a parameter, not derived from `stateDir`.
+
+#### Scenario: Incident has existing state mapping
+- **WHEN** `metadata.name: outage-1` has an entry in the state file mapping to remote ID 42
+- **THEN** the reconciler fetches the remote Incident with ID 42 for comparison
 
 ### Requirement: Reconcile Maintenances via state identity file
-The system SHALL use `metadata.name` as the stable local key for Maintenances, looking up the remote integer ID from `.kener-ctl-state.json`.
+The system SHALL use `metadata.name` as the stable local key for Maintenances, looking up the remote integer ID from the state file at `~/.config/kener-ctl/state/<context-name>.json`. The state file path SHALL be passed to the reconciler as a parameter, not derived from `stateDir`.
+
+#### Scenario: Maintenance has existing state mapping
+- **WHEN** `metadata.name: sunday-upgrade` has an entry in the state file mapping to remote ID 7
+- **THEN** the reconciler fetches the remote Maintenance with ID 7 for comparison
 
 ### Requirement: Apply changes in dependency order
 The system SHALL execute CREATE and UPDATE changes in the order: AlertTriggers → Monitors → Pages → AlertConfigs → Incidents → Maintenances. DELETE changes SHALL be executed in reverse order.
@@ -104,7 +112,7 @@ The system SHALL continue applying other resources when one resource's API call 
 - **THEN** both outcomes are reported; Monitor B is successfully updated
 
 ### Requirement: Update state identity file after successful apply
-The system SHALL atomically update `.kener-ctl-state.json` after each successful apply, writing new name→ID mappings for created resources and removing mappings for deleted resources.
+The system SHALL atomically update the state file at `~/.config/kener-ctl/state/<context-name>.json` after each successful apply, writing new name→ID mappings for created resources and removing mappings for deleted resources. The state file path SHALL be passed to the reconciler as a parameter.
 
 #### Scenario: New Incident created
 - **WHEN** an Incident is created with `metadata.name: outage-1` and the API returns ID 42
@@ -117,3 +125,7 @@ The system SHALL atomically update `.kener-ctl-state.json` after each successful
 #### Scenario: Atomic write prevents corruption
 - **WHEN** the state file is being updated and the process crashes mid-write
 - **THEN** the previous state file is preserved intact (write to temp file, then rename)
+
+#### Scenario: State file directory created if missing
+- **WHEN** the state file is being saved for a context and the directory `~/.config/kener-ctl/state/` does not exist
+- **THEN** the directory is created automatically before writing

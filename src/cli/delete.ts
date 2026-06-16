@@ -11,7 +11,7 @@ import { createAlertConfigsApi } from "@/api/alert-configs";
 import { createIncidentsApi } from "@/api/incidents";
 import { createMaintenancesApi } from "@/api/maintenances";
 import { ConfigError, NetworkError } from "@/util/errors";
-import { configArg, yesFlag, formatKind, isValidKind } from "./shared";
+import { contextArg, yesFlag, formatKind, isValidKind } from "./shared";
 
 export const deleteCommand = defineCommand({
   meta: {
@@ -31,13 +31,13 @@ export const deleteCommand = defineCommand({
       valueHint: "my-api",
       required: true,
     },
-    config: configArg,
+    context: contextArg,
     yes: yesFlag,
   },
   async run({ args }) {
     try {
       const config = await loadConfig({
-        configPath: args.config,
+        context: args.context,
       });
 
       const kind = formatKind(args.kind);
@@ -65,7 +65,6 @@ export const deleteCommand = defineCommand({
       if (!isNaN(Number(args.id))) {
         numericId = Number(args.id);
       } else {
-        // Look up by stable key
         switch (kind) {
           case "Monitor": {
             const api = createMonitorsApi(client);

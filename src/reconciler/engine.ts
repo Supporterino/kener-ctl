@@ -1,5 +1,5 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync, unlinkSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync } from "node:fs";
+import { dirname } from "node:path";
 import type { KyInstance } from "ky";
 import { createMonitorsApi } from "@/api/monitors";
 import { createPagesApi } from "@/api/pages";
@@ -37,6 +37,7 @@ export interface ReconcileContext {
   dryRun: boolean;
   deleteOrphans: boolean;
   concurrency: number;
+  stateFilePath: string;
   kind?: ManifestKind;
   tag?: string;
   name?: string;
@@ -69,7 +70,7 @@ export async function reconcile(ctx: ReconcileContext): Promise<ReconcileResult>
   const incidentsApi = createIncidentsApi(ctx.client);
   const maintenancesApi = createMaintenancesApi(ctx.client);
 
-  const stateFile = loadStateFile(ctx.stateDir);
+  const stateFile = loadStateFile(ctx.stateFilePath);
 
   const kindGroups = groupByKind(filtered);
   const allChanges: Change<AnyManifest>[] = [];
@@ -146,7 +147,7 @@ export async function reconcile(ctx: ReconcileContext): Promise<ReconcileResult>
 
   // Update state file
   const updatedState = updateStateFile(stateFile, activeChanges, results);
-  saveStateFile(ctx.stateDir, updatedState);
+  saveStateFile(ctx.stateFilePath, updatedState);
 
   return {
     changes: planChanges,
@@ -361,12 +362,7 @@ function getChangeDetails(c: Change<AnyManifest>): string {
 
 // ─── State file management ──────────────────────────────────────────────────
 
-function stateFilePath(stateDir: string): string {
-  return join(stateDir, "..", ".kener-ctl-state.json");
-}
-
-export function loadStateFile(stateDir: string): StateFile | null {
-  const path = stateFilePath(stateDir);
+export function loadStateFile(path: string): StateFile | null {
   if (!existsSync(path)) return null;
   try {
     const content = readFileSync(path, "utf-8");
@@ -376,8 +372,7 @@ export function loadStateFile(stateDir: string): StateFile | null {
   }
 }
 
-export function saveStateFile(stateDir: string, state: StateFile): void {
-  const path = stateFilePath(stateDir);
+export function saveStateFile(path: string, state: StateFile): void {
   const dir = dirname(path);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 

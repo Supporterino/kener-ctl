@@ -1,14 +1,14 @@
 import { defineCommand } from "citty";
 import { consola } from "consola";
 import chalk from "chalk";
-import { loadConfig } from "@/config/loader";
+import { loadConfig, stateFilePath } from "@/config/loader";
 import { createKenerClient } from "@/api/client";
 import { plan } from "@/reconciler/engine";
 import { printPlanTable } from "@/output/printer";
 import type { PlanRow } from "@/output/printer";
 import { ValidationError, ConfigError, NetworkError } from "@/util/errors";
 import {
-  kindArg, tagArg, nameArg, pathArg, configArg, stateDirArg,
+  kindArg, tagArg, nameArg, pathArg, contextArg, stateDirArg,
   deleteOrphansFlag, formatKind,
 } from "./shared";
 
@@ -22,27 +22,25 @@ export const planCommand = defineCommand({
     tag: tagArg,
     name: nameArg,
     path: pathArg,
-    config: configArg,
+    context: contextArg,
     "state-dir": stateDirArg,
     "delete-orphans": deleteOrphansFlag,
   },
   async run({ args }) {
     try {
       const config = await loadConfig({
-        configPath: args.config,
-        overrides: {
-          stateDir: args["state-dir"] ?? undefined,
-        },
+        context: args.context,
       });
 
       const client = createKenerClient(config.instance, config.apiKey);
 
       const result = await plan({
         client,
-        stateDir: config.stateDir,
+        stateDir: args["state-dir"] ?? config.stateDir,
         dryRun: true,
         deleteOrphans: args["delete-orphans"] ?? false,
         concurrency: config.concurrency,
+        stateFilePath: stateFilePath(config.contextName),
         kind: args.kind ? formatKind(args.kind) : undefined,
         tag: args.tag,
         name: args.name,

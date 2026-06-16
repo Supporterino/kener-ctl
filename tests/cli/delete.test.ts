@@ -26,8 +26,8 @@ describe("delete command definition", () => {
     expect(id.required).toBe(true);
   });
 
-  it("has config arg", () => {
-    expect(args()).toHaveProperty("config");
+  it("has context arg", () => {
+    expect(args()).toHaveProperty("context");
   });
 
   it("has yes flag (skip confirmation)", () => {

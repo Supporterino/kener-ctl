@@ -2,7 +2,7 @@ import { defineCommand } from "citty";
 import { consola } from "consola";
 import chalk from "chalk";
 import { writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join } from "node:path";
 import { loadConfig } from "@/config/loader";
 import { createKenerClient } from "@/api/client";
 import { createMonitorsApi } from "@/api/monitors";
@@ -12,7 +12,7 @@ import { createAlertConfigsApi } from "@/api/alert-configs";
 import { createIncidentsApi } from "@/api/incidents";
 import { createMaintenancesApi } from "@/api/maintenances";
 import { ConfigError, NetworkError } from "@/util/errors";
-import { kindArg, configArg, stateDirArg, overwriteFlag, formatKind } from "./shared";
+import { kindArg, contextArg, stateDirArg, overwriteFlag, formatKind } from "./shared";
 
 export function serializeToYaml(obj: unknown): string {
   return JSON.stringify(obj, null, 2);
@@ -25,21 +25,18 @@ export const pullCommand = defineCommand({
   },
   args: {
     kind: kindArg,
-    config: configArg,
+    context: contextArg,
     "state-dir": stateDirArg,
     overwrite: overwriteFlag,
   },
   async run({ args }) {
     try {
       const config = await loadConfig({
-        configPath: args.config,
-        overrides: {
-          stateDir: args["state-dir"] ?? undefined,
-        },
+        context: args.context,
       });
 
       const client = createKenerClient(config.instance, config.apiKey);
-      const stateDir = config.stateDir;
+      const stateDir = args["state-dir"] ?? config.stateDir;
 
       const kinds = args.kind ? [formatKind(args.kind)] : ["Monitor", "Page", "AlertTrigger", "AlertConfig", "Incident", "Maintenance"];
 

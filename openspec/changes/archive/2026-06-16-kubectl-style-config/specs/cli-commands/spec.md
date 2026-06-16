@@ -1,17 +1,23 @@
 # cli-commands
 
-## Purpose
+Delta spec for changes to CLI command flags and context selection.
 
-TBD
+## REMOVED Requirements
 
-## Requirements
+None removed. All existing commands are retained; only flag changes apply.
+
+## MODIFIED Requirements
 
 ### Requirement: apply command
 The system SHALL provide an `apply` subcommand that resolves the active context, loads manifests, computes a diff against the remote Kener instance, and executes changes (unless `--dry-run` is specified). The command SHALL support a `--context` flag to select the Kener context, overriding the config default and `KENER_CONTEXT` env var. The `--config` flag SHALL be removed.
 
 #### Scenario: Apply creates new resources
 - **WHEN** `kener-ctl apply` is run with manifests declaring resources absent from the remote
-- **THEN** the resources are created on the remote instance and a summary table is printed
+- **THEN** the resources are created on the remote instance for the active context and a summary table is printed
+
+#### Scenario: Apply with explicit context
+- **WHEN** `kener-ctl apply --context staging` is run
+- **THEN** the `staging` context is used regardless of `current-context` or `KENER_CONTEXT`
 
 #### Scenario: Apply with dry-run flag
 - **WHEN** `kener-ctl apply --dry-run` is run
@@ -41,10 +47,6 @@ The system SHALL provide an `apply` subcommand that resolves the active context,
 - **WHEN** `kener-ctl apply` successfully reconciles all resources (or has no changes to make)
 - **THEN** the command exits with code 0
 
-#### Scenario: Apply with explicit context
-- **WHEN** `kener-ctl apply --context staging` is run
-- **THEN** the `staging` context is used regardless of `current-context` or `KENER_CONTEXT`
-
 #### Scenario: Apply with no context configured
 - **WHEN** `kener-ctl apply` is run but no context can be resolved (no current-context, no --context, no KENER_CONTEXT)
 - **THEN** the command exits with code 1 and prints an error instructing the user to set a context
@@ -60,58 +62,20 @@ The system SHALL provide a `plan` subcommand functionally identical to `apply --
 - **WHEN** `kener-ctl plan` is run and all resources match the remote state
 - **THEN** a message is printed indicating no changes, and the command exits with code 0
 
-#### Scenario: Plan exits with code 2 on manifest validation errors
-- **WHEN** `kener-ctl plan` encounters invalid manifests
-- **THEN** the command exits with code 2
-
 #### Scenario: Plan with explicit context
 - **WHEN** `kener-ctl plan --context staging` is run
 - **THEN** the `staging` context is used
 
-### Requirement: validate command
-The system SHALL provide a `validate` subcommand that parses and validates all manifest files without making any API calls.
-
-#### Scenario: All manifests valid
-- **WHEN** `kener-ctl validate` is run and all manifests pass Zod validation
-- **THEN** a success message is printed and the command exits with code 0
-
-#### Scenario: Some manifests invalid
-- **WHEN** `kener-ctl validate` encounters validation errors in manifests
-- **THEN** all errors are collected and printed with file paths and field details, and the command exits with code 2
-
-### Requirement: pull command
-The system SHALL provide a `pull` subcommand to export remote resources as YAML manifests. The command SHALL support a `--context` flag for context selection. The `--config` flag SHALL be removed.
-
-#### Scenario: Pull all resource kinds
-- **WHEN** `kener-ctl pull` is run against a Kener instance with existing resources
-- **THEN** YAML files are written to `stateDir/` organized by kind (e.g., `monitors/`, `pages/`), each containing valid manifests
-
-#### Scenario: Pull specific kind
-- **WHEN** `kener-ctl pull --kind Monitor` is run
-- **THEN** only Monitor manifests are written; other resource kinds are not fetched
-
-#### Scenario: Pull with explicit context
-- **WHEN** `kener-ctl pull --context staging` is run
-- **THEN** resources are pulled from the `staging` instance
-
-#### Scenario: Pull skips existing files
-- **WHEN** `kener-ctl pull` would write to a file that already exists
-- **THEN** the file is skipped and a warning is printed
-
-#### Scenario: Pull with overwrite flag
-- **WHEN** `kener-ctl pull --overwrite` would write to a file that already exists
-- **THEN** the existing file is overwritten
-
-#### Scenario: Pull creates parent directories
-- **WHEN** `kener-ctl pull` writes to `stateDir/monitors/api.yaml` and the `monitors/` directory does not exist
-- **THEN** the directory is created automatically
+#### Scenario: Plan exits with code 2 on manifest validation errors
+- **WHEN** `kener-ctl plan` encounters invalid manifests
+- **THEN** the command exits with code 2
 
 ### Requirement: get command
 The system SHALL provide a `get` subcommand to fetch and display resources. The command SHALL support a `--context` flag for context selection. The `--config` flag SHALL be removed.
 
 #### Scenario: Get all monitors as table
 - **WHEN** `kener-ctl get monitors` is run (default table output)
-- **THEN** all remote monitors are fetched and displayed in a table with key fields (tag, name, type, status)
+- **THEN** all remote monitors on the active context's instance are fetched and displayed in a table
 
 #### Scenario: Get single monitor by tag
 - **WHEN** `kener-ctl get monitor my-api` is run
@@ -129,16 +93,12 @@ The system SHALL provide a `get` subcommand to fetch and display resources. The 
 - **WHEN** `kener-ctl get monitors --output yaml` is run
 - **THEN** the monitors are printed as YAML
 
-#### Scenario: Get with unknown resource kind
-- **WHEN** `kener-ctl get foobars` is run
-- **THEN** an error message is printed listing valid resource kinds and the command exits with code 1
-
 ### Requirement: delete command
 The system SHALL provide a `delete` subcommand to immediately delete a single remote resource. The command SHALL support a `--context` flag for context selection. The `--config` flag SHALL be removed.
 
 #### Scenario: Delete monitor by tag with confirmation
 - **WHEN** `kener-ctl delete monitor my-api` is run and the user confirms
-- **THEN** the remote monitor with tag `my-api` is deleted
+- **THEN** the remote monitor with tag `my-api` is deleted from the active context's instance
 
 #### Scenario: Delete with --yes flag skips confirmation
 - **WHEN** `kener-ctl delete monitor my-api --yes` is run
@@ -152,42 +112,17 @@ The system SHALL provide a `delete` subcommand to immediately delete a single re
 - **WHEN** `kener-ctl delete monitor nonexistent` is run for a tag that does not exist
 - **THEN** an error message is printed and the command exits with code 1
 
-### Requirement: Coloured diff output in plan
-The system SHALL render a table with coloured action indicators when `plan` or `apply --dry-run` produces output.
+### Requirement: pull command
+The system SHALL provide a `pull` subcommand to export remote resources as YAML manifests. The command SHALL support a `--context` flag for context selection. The `--config` flag SHALL be removed.
 
-#### Scenario: Colour in TTY mode
-- **WHEN** stdout is a TTY
-- **THEN** CREATE rows show green `+`, UPDATE rows show yellow `~`, DELETE rows show red `-`, NOOP rows show grey `·`
+#### Scenario: Pull all resource kinds
+- **WHEN** `kener-ctl pull` is run against the active context's instance with existing resources
+- **THEN** YAML files are written to `stateDir/` organized by kind
 
-#### Scenario: No colour in non-TTY mode
-- **WHEN** stdout is not a TTY (piped or redirected)
-- **THEN** the table is rendered without ANSI colour codes
+#### Scenario: Pull with explicit context
+- **WHEN** `kener-ctl pull --context staging` is run
+- **THEN** resources are pulled from the `staging` instance
 
-### Requirement: Structured logging via consola
-The system SHALL use `consola` for all log output, supporting verbose mode and automatic TTY detection.
-
-#### Scenario: Verbose logging
-- **WHEN** a command runs with verbose flag or config
-- **THEN** detailed debug information (API request URLs, response statuses, diff details) is logged
-
-#### Scenario: Info-level by default
-- **WHEN** no verbosity flag is set
-- **THEN** only info, warn, and error messages are displayed
-
-### Requirement: Non-TTY mode degrades gracefully
-The system SHALL detect non-TTY output and automatically disable spinners and colour.
-
-#### Scenario: Output piped to file
-- **WHEN** `kener-ctl plan > output.txt`
-- **THEN** the output contains plain text without ANSI escape codes or spinner animations
-
-### Requirement: Help text for all commands
-The system SHALL auto-generate `--help` output for every command and subcommand via `citty`, showing available options, descriptions, and defaults.
-
-#### Scenario: Top-level help
-- **WHEN** `kener-ctl --help` is run
-- **THEN** a list of all available subcommands (apply, plan, validate, pull, get, delete, config) is printed with descriptions
-
-#### Scenario: Subcommand help
-- **WHEN** `kener-ctl apply --help` is run
-- **THEN** all options for the apply command are printed with types, descriptions, and defaults
+#### Scenario: Pull specific kind
+- **WHEN** `kener-ctl pull --kind Monitor` is run
+- **THEN** only Monitor manifests are written; other resource kinds are not fetched
