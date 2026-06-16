@@ -1,0 +1,60 @@
+schema: spec-driven
+
+context: |
+  ## kener-ctl
+
+  A CLI that treats a Kener instance as a desired-state system. Users declare
+  monitors, pages, alert configurations, alert triggers, and incidents in YAML
+  files under a local directory, then run `kener-ctl apply` to reconcile the
+  remote instance to match those files.
+
+  ### Tech Stack
+  - Runtime: Bun ≥ 1.1
+  - Language: TypeScript (strict, noUncheckedIndexedAccess)
+  - CLI framework: citty
+  - HTTP client: ky
+  - Schema/validation: zod
+  - YAML parsing: js-yaml
+  - Config loader: c12
+  - Logging: consola
+  - Terminal colour: chalk
+  - Table rendering: cli-table3
+  - Deep equality: fast-deep-equal
+  - File discovery: Bun.Glob (built-in)
+  - Testing: bun:test (built-in)
+
+  ### Target Platform
+  Kener v4 REST API (/api/v4/…)
+
+  ### Code Conventions
+  - Functional style, factory functions over classes
+  - Named exports only
+  - Zod schemas for all external data; types derived via z.infer<>
+  - No any types; prefer unknown
+  - ky hooks.beforeRequest for error enrichment
+  - Mocks via ky hooks.beforeRequest or test-double factories
+
+  ### Key Documents
+  - Architecture: kener-ctl-architecture.md
+  - Agent guidelines: AGENTS.md
+
+rules:
+  proposal:
+    - Reference kener-ctl-architecture.md for component layout, library choices, and data flow
+    - Must specify which source directories and files are affected
+    - Breaking changes to the manifest schema require a migration plan
+    - Include a "Non-goals" section
+  design:
+    - All external data paths must have Zod validation
+    - New resource kinds must follow the existing reconcile key mapping pattern
+    - API types must match the Kener v4 OpenAPI spec
+    - Strip server-only fields (id, createdAt, updatedAt) before diff comparison
+  spec:
+    - Each requirement must be independently testable
+    - Specify exit codes for CLI commands (0 = success, 1 = API error, 2 = validation error)
+    - Delta specs must reference the parent spec they modify
+  tasks:
+    - Every task must include test verification (bun test)
+    - Break implementation into chunks of max 2-4 hours
+    - Reconcile order must respect dependency: AlertTriggers → Monitors → Pages → AlertConfigs → Incidents → Maintenances
+    - After implementation, run: bun run typecheck && bun test && bun run build
