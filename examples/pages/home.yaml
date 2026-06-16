@@ -1,0 +1,32 @@
+kind: Page
+metadata:
+  path: "~home"
+spec:
+  title: Home
+  header: "System Status"
+  pageContent: |
+    ## Welcome
+
+    Real-time status for all core platform services. This page is automatically
+    updated by kener-ctl from the manifests in `examples/`.
+
+    - **API**: Primary REST API health
+    - **Network**: Gateway and DNS checks
+    - **Data**: Database connectivity
+    - **Infrastructure**: TCP port and grouped core services
+
+    [API Docs](https://docs.example.com) | [Support](mailto:ops@example.com)
+  monitors:
+    - api-example
+    - ping-example
+    - tcp-example
+    - dns-example
+    - sql-example
+    - core-services
+  display:
+    desktopDays: 90
+    mobileDays: 30
+    layout: default-list
+  seo:
+    metaTitle: "System Status"
+    metaDescription: "Current operational status of the Example platform"

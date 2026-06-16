@@ -1,0 +1,12 @@
+kind: Incident
+metadata:
+  name: api-degraded-investigating
+spec:
+  title: API Latency Degradation
+  state: INVESTIGATING
+  affectedMonitors:
+    - tag: api-example
+      impact: DEGRADED
+  updates:
+    - message: "Investigating increased latency on the primary API. Response times spiking above 5 seconds for some endpoints."
+      state: INVESTIGATING

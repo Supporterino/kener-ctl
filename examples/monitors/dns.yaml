@@ -1,0 +1,15 @@
+kind: Monitor
+metadata:
+  tag: dns-example
+spec:
+  name: DNS Example
+  description: "DNS resolution check for the primary domain"
+  type: DNS
+  categoryName: Network
+  cronSchedule: "*/5 * * * *"
+  typeData:
+    _type: DNS
+    host: example.com
+    type: A
+    dnsServer: 8.8.8.8
+    timeout: 5000

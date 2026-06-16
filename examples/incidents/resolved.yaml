@@ -1,0 +1,18 @@
+kind: Incident
+metadata:
+  name: dns-resolution-resolved
+spec:
+  title: DNS Resolution Failures
+  state: RESOLVED
+  affectedMonitors:
+    - tag: dns-example
+      impact: DOWN
+  updates:
+    - message: "Receiving alerts that DNS resolution for example.com is failing from multiple regions."
+      state: INVESTIGATING
+    - message: "Identified a misconfigured zone transfer at the primary DNS provider. Propagation has been paused."
+      state: IDENTIFIED
+    - message: "Zone file has been corrected. DNS propagation is underway. Monitoring resolution success rates globally."
+      state: MONITORING
+    - message: "DNS resolution has returned to normal across all regions. All probes passing. Root cause: stale SOA serial caused zone transfer failures."
+      state: RESOLVED

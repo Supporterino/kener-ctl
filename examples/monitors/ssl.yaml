@@ -1,0 +1,14 @@
+kind: Monitor
+metadata:
+  tag: ssl-example
+spec:
+  name: SSL Example
+  description: "SSL certificate expiry check for the main domain"
+  type: SSL
+  categoryName: Security
+  cronSchedule: "0 */6 * * *"
+  typeData:
+    _type: SSL
+    host: example.com
+    port: 443
+    timeout: 5000

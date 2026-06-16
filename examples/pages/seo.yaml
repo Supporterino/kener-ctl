@@ -1,0 +1,22 @@
+kind: Page
+metadata:
+  path: public-status
+spec:
+  title: Public Status
+  header: "Example Inc — Public Status"
+  pageContent: |
+    ## Service Availability
+
+    Public-facing status page for external consumers.
+
+    All times are in UTC.
+  monitors:
+    - api-example
+    - ping-example
+  display:
+    desktopDays: 90
+    mobileDays: 30
+    layout: compact-list
+  seo:
+    metaTitle: "Example Inc — Service Status"
+    metaDescription: "Live service availability and incident history for Example Inc's platform. Status updates for API, network, and infrastructure services."

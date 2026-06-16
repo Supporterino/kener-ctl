@@ -1,0 +1,6 @@
+kind: AlertTrigger
+metadata:
+  name: ops-webhook
+spec:
+  type: WEBHOOK
+  webhookUrl: https://webhook.example.com/alerts/CHANGEME

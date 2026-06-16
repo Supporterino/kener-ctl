@@ -1,0 +1,21 @@
+kind: Page
+metadata:
+  path: grid-view
+spec:
+  title: Infrastructure Grid
+  header: "Infrastructure Status"
+  pageContent: |
+    ## Infrastructure
+
+    Grid view of all infrastructure-level monitors including SSL certificates,
+    database connectivity, and game server status.
+  monitors:
+    - ssl-example
+    - sql-example
+    - gamedig-example
+    - grpc-example
+    - heartbeat-example
+  display:
+    desktopDays: 60
+    mobileDays: 14
+    layout: default-grid

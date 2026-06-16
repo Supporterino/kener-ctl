@@ -1,0 +1,14 @@
+kind: Incident
+metadata:
+  name: db-down-identified
+spec:
+  title: Database Connection Failure
+  state: IDENTIFIED
+  affectedMonitors:
+    - tag: sql-example
+      impact: DOWN
+  updates:
+    - message: "Investigating reports of failed database connections from the application tier."
+      state: INVESTIGATING
+    - message: "Identified a network partition between the application servers and the primary database replica. Networking team is re-routing traffic."
+      state: IDENTIFIED

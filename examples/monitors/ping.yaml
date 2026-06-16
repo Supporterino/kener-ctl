@@ -1,0 +1,13 @@
+kind: Monitor
+metadata:
+  tag: ping-example
+spec:
+  name: Ping Example
+  description: "ICMP ping check against the gateway"
+  type: PING
+  categoryName: Network
+  cronSchedule: "* * * * *"
+  typeData:
+    _type: PING
+    host: 10.0.0.1
+    timeout: 3000

@@ -1,0 +1,12 @@
+kind: Monitor
+metadata:
+  tag: heartbeat-example
+spec:
+  name: Heartbeat Example
+  description: "Cron job heartbeat check — expects a ping at the given interval"
+  type: HEARTBEAT
+  categoryName: Background Jobs
+  cronSchedule: "*/1 * * * *"
+  typeData:
+    _type: HEARTBEAT
+    interval: 60000

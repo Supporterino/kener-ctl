@@ -1,0 +1,26 @@
+kind: Monitor
+metadata:
+  tag: api-example
+spec:
+  name: API Example
+  description: "Health check against the primary REST API"
+  type: API
+  categoryName: Production
+  cronSchedule: "*/5 * * * *"
+  defaultStatus: DOWN
+  gracePeriod: 120
+  dayDegradedMinCount: 3
+  dayDownMinCount: 5
+  typeData:
+    _type: API
+    url: https://api.example.com/health
+    method: GET
+    timeout: 10000
+    allowSelfSignedCert: false
+    headers:
+      - key: Authorization
+        value: "Bearer CHANGEME"
+      - key: Accept
+        value: application/json
+    body: ""
+    eval: response.status === 200

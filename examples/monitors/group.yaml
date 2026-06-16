@@ -1,0 +1,15 @@
+kind: Monitor
+metadata:
+  tag: core-services
+spec:
+  name: Core Services Group
+  description: "Aggregated status of core infrastructure services"
+  type: GROUP
+  categoryName: Infrastructure
+  cronSchedule: "*/5 * * * *"
+  typeData:
+    _type: GROUP
+    monitorTags:
+      - api-example
+      - ping-example
+      - tcp-example

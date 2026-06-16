@@ -1,0 +1,15 @@
+kind: Monitor
+metadata:
+  tag: gamedig-example
+spec:
+  name: Gamedig Example
+  description: "Game server query via Gamedig"
+  type: GAMEDIG
+  categoryName: Gaming
+  cronSchedule: "*/5 * * * *"
+  typeData:
+    _type: GAMEDIG
+    host: gameserver.example.com
+    port: 27015
+    type: csgo
+    timeout: 5000

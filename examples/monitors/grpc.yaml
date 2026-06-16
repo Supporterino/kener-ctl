@@ -1,0 +1,15 @@
+kind: Monitor
+metadata:
+  tag: grpc-example
+spec:
+  name: GRPC Example
+  description: "gRPC health check against the user service"
+  type: GRPC
+  categoryName: Services
+  cronSchedule: "*/5 * * * *"
+  typeData:
+    _type: GRPC
+    host: grpc.example.com
+    port: 50051
+    service: users.v1.UserService
+    timeout: 5000

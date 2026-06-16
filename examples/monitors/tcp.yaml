@@ -1,0 +1,14 @@
+kind: Monitor
+metadata:
+  tag: tcp-example
+spec:
+  name: TCP Example
+  description: "TCP port check against the message broker"
+  type: TCP
+  categoryName: Infrastructure
+  cronSchedule: "*/5 * * * *"
+  typeData:
+    _type: TCP
+    host: broker.example.com
+    port: 5672
+    timeout: 5000

@@ -1,0 +1,10 @@
+kind: Maintenance
+metadata:
+  name: weekly-db-vacuum
+spec:
+  title: Weekly Database Vacuum Window
+  monitors:
+    - sql-example
+  startDatetime: "2026-07-01T03:00:00Z"
+  endDatetime: "2026-07-01T04:00:00Z"
+  rrule: "FREQ=WEEKLY;BYDAY=SU;BYHOUR=3"

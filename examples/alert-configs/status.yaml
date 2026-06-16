@@ -1,0 +1,14 @@
+kind: AlertConfig
+metadata:
+  name: api-status-critical
+spec:
+  monitorTag: api-example
+  alertType: STATUS
+  alertValue: DOWN
+  failureThreshold: 1
+  successThreshold: 2
+  severity: CRITICAL
+  createIncident: true
+  triggerNames:
+    - ops-slack
+    - ops-email
