@@ -84,19 +84,11 @@ jobs:
           cd dist/release && sha256sum * > ../checksums.txt
         shell: bash
 
-      - name: generate changelog
-        uses: orhun/git-cliff-action@v4
-        with:
-          config: cliff.toml
-          args: --latest --strip header
-        env:
-          OUTPUT: CHANGELOG.md
-
       - name: create github release
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ github.ref_name }}
-          body_path: CHANGELOG.md
+          generate_release_notes: true
           files: |
             dist/release/*
             dist/checksums.txt
