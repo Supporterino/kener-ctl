@@ -1,0 +1,101 @@
+# Standalone Releases
+
+## Purpose
+
+TBD — This capability defines how kener-ctl is compiled into standalone binaries, packaged with checksums and changelogs, and published as GitHub Releases and npm packages.
+
+## Requirements
+
+### Requirement: Standalone binary compilation
+The system SHALL compile the CLI into standalone, self-contained binaries for all supported platforms using `bun build --compile`.
+
+#### Scenario: Build for linux x64
+- **WHEN** `bun build --compile src/cli/index.ts --target=bun-linux-x64 --outfile dist/kener-ctl-linux-x64` is run
+- **THEN** a standalone executable named `kener-ctl-linux-x64` is produced at `dist/kener-ctl-linux-x64`
+
+#### Scenario: Build for linux arm64
+- **WHEN** `bun build --compile src/cli/index.ts --target=bun-linux-arm64 --outfile dist/kener-ctl-linux-arm64` is run
+- **THEN** a standalone executable named `kener-ctl-linux-arm64` is produced at `dist/kener-ctl-linux-arm64`
+
+#### Scenario: Build for darwin x64
+- **WHEN** `bun build --compile src/cli/index.ts --target=bun-darwin-x64 --outfile dist/kener-ctl-darwin-x64` is run
+- **THEN** a standalone executable named `kener-ctl-darwin-x64` is produced at `dist/kener-ctl-darwin-x64`
+
+#### Scenario: Build for darwin arm64
+- **WHEN** `bun build --compile src/cli/index.ts --target=bun-darwin-arm64 --outfile dist/kener-ctl-darwin-arm64` is run
+- **THEN** a standalone executable named `kener-ctl-darwin-arm64` is produced at `dist/kener-ctl-darwin-arm64`
+
+#### Scenario: Build for windows x64
+- **WHEN** `bun build --compile src/cli/index.ts --target=bun-windows-x64 --outfile dist/kener-ctl-win-x64.exe` is run
+- **THEN** a standalone executable named `kener-ctl-win-x64.exe` is produced at `dist/kener-ctl-win-x64.exe`
+
+#### Scenario: Compiled binary is self-contained
+- **WHEN** a compiled binary is executed on its target platform without Bun installed
+- **THEN** the binary runs successfully, displaying the `kener-ctl` help output
+
+### Requirement: SHA256 checksum generation
+The system SHALL generate SHA256 checksums for all release binaries and include them in the release.
+
+#### Scenario: Checksums file created
+- **WHEN** all platform binaries have been compiled
+- **THEN** a `checksums.txt` file is generated containing the SHA256 hash and filename for each binary, one per line
+
+#### Scenario: Checksums file format
+- **WHEN** `checksums.txt` is generated for binaries `kener-ctl-linux-x64` and `kener-ctl-darwin-arm64`
+- **THEN** the file contains lines in the format `<sha256-hash>  <filename>` (e.g., `abc123...  kener-ctl-linux-x64`)
+
+### Requirement: Automated changelog generation
+The system SHALL generate a changelog from conventional commit history using git-cliff, configured via `cliff.toml`.
+
+#### Scenario: Changelog groups commits by type
+- **WHEN** git-cliff processes the commit history since the previous tag
+- **THEN** the output groups commits into sections based on conventional commit type (Features, Bug Fixes, Refactoring, etc.) with corresponding Gitmoji
+
+#### Scenario: Changelog for release notes
+- **WHEN** a release is created
+- **THEN** the GitHub Release body contains the generated changelog as its description
+
+#### Scenario: cliff.toml present in repository
+- **WHEN** the repository is cloned
+- **THEN** a `cliff.toml` configuration file is present at the repository root, defining commit groups, Gitmoji mappings, and output formatting
+
+### Requirement: GitHub Release publishing
+The system SHALL create a GitHub Release triggered by a git tag push matching the `v*` pattern, attaching all platform binaries and checksums.
+
+#### Scenario: Release triggered by version tag
+- **WHEN** a git tag matching `v*` (e.g., `v0.1.0`) is pushed to the repository
+- **THEN** the release workflow runs and creates a GitHub Release for that version
+
+#### Scenario: Release contains all binaries
+- **WHEN** the release workflow completes for `v0.1.0`
+- **THEN** the GitHub Release at `https://github.com/<owner>/kener-ctl/releases/tag/v0.1.0` has 5 binary assets (`-linux-x64`, `-linux-arm64`, `-darwin-x64`, `-darwin-arm64`, `-win-x64.exe`) and a `checksums.txt` file
+
+#### Scenario: Release title uses version
+- **WHEN** the GitHub Release is created for tag `v0.1.0`
+- **THEN** the release title is `v0.1.0`
+
+#### Scenario: Release body uses changelog
+- **WHEN** the GitHub Release is created
+- **THEN** the release body contains the git-cliff generated changelog
+
+### Requirement: npm publishing
+The system SHALL publish the JS build artifact to npm as part of the release workflow.
+
+#### Scenario: npm publish on release
+- **WHEN** the release workflow runs for a tag matching `v*`
+- **THEN** the package is published to npm with the version from `package.json`
+
+#### Scenario: npm publish skipped if version exists
+- **WHEN** the release workflow runs but the version already exists on npm
+- **THEN** the workflow logs a warning and continues without failing
+
+### Requirement: Local release script
+The system SHALL provide a `release` script in `package.json` that compiles a standalone binary for the developer's current platform.
+
+#### Scenario: Local binary compilation
+- **WHEN** `bun run release` is executed in the project directory
+- **THEN** a standalone `kener-ctl` binary is produced in the `dist/` directory, built for the current OS and architecture
+
+#### Scenario: Local binary is executable
+- **WHEN** the locally compiled binary is run with `--help`
+- **THEN** it prints the `kener-ctl` help text and exits with code 0
