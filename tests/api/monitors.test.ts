@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it, mock } from "bun:test"
+import { describe, expect, it, mock } from "bun:test"
 import type { createKenerClient } from "@/api/client"
 import { createMonitorsApi } from "@/api/monitors"
 
@@ -21,21 +21,6 @@ const mockMonitor2 = {
   name: "My DB",
   type: "PING" as const,
 }
-
-beforeAll(() => {
-  mock.module("ky", () => ({
-    create: () => ({
-      get: () => {},
-      post: () => {},
-      patch: () => {},
-      delete: () => {},
-    }),
-  }))
-})
-
-afterAll(() => {
-  mock.restore()
-})
 
 function createMockKy(
   responseData: unknown,
