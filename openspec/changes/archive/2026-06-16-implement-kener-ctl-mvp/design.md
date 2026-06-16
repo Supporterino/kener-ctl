@@ -1,6 +1,6 @@
 ## Context
 
-`kener-ctl` is a greenfield CLI project. The full architecture is specified in `kener-ctl-architecture.md` at the repo root. There is no existing code — all components are being built from scratch. The target is Kener v4's REST API (`/api/v4/…`). Runtime is Bun ≥ 1.1 with strict TypeScript.
+`kener-ctl` is a greenfield CLI project. The full architecture is specified in `AGENTS.md` at the repo root. There is no existing code — all components are being built from scratch. The target is Kener v4's REST API (`/api/v4/…`). Runtime is Bun ≥ 1.1 with strict TypeScript.
 
 ## Goals / Non-Goals
 

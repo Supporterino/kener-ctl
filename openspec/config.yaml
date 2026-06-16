@@ -35,12 +35,11 @@ context: |
   - Mocks via ky hooks.beforeRequest or test-double factories
 
   ### Key Documents
-  - Architecture: kener-ctl-architecture.md
-  - Agent guidelines: AGENTS.md
+  - Agent guidelines & architecture: AGENTS.md
 
 rules:
   proposal:
-    - Reference kener-ctl-architecture.md for component layout, library choices, and data flow
+    - Reference AGENTS.md for component layout, library choices, and data flow
     - Must specify which source directories and files are affected
     - Breaking changes to the manifest schema require a migration plan
     - Include a "Non-goals" section
