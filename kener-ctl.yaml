@@ -1,0 +1,20 @@
+# kener-ctl configuration
+# Environment variables: KENER_URL, KENER_API_KEY override these values
+
+# Base URL of the Kener instance (required)
+instance: https://status.example.com
+
+# API key for authenticating with the Kener API (required)
+apiKey: "your-api-key-here"
+
+# Root directory for manifest files (default: ./state)
+stateDir: ./state
+
+# If true, plan only — never make any API mutations (default: false)
+dryRun: false
+
+# Prune remote resources that are not declared in state (default: false)
+deleteOrphans: false
+
+# Maximum parallel API calls during apply (default: 4)
+concurrency: 4
