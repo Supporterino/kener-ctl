@@ -1,54 +1,54 @@
-import type { AlertConfigsApi } from "@/api/alert-configs";
-import type { AlertConfig } from "@/api/types";
-import type { AlertConfigManifest } from "@/manifest/types";
-import { diff, stripServerFields } from "../diff";
-import type { Change } from "../diff";
+import type { AlertConfigsApi } from "@/api/alert-configs"
+import type { AlertConfig } from "@/api/types"
+import type { AlertConfigManifest } from "@/manifest/types"
+import type { Change } from "../diff"
+import { diff, stripServerFields } from "../diff"
 
 export interface StateFile {
-  version: number;
-  alertConfigs?: Record<string, number>;
-  incidents?: Record<string, number>;
-  maintenances?: Record<string, number>;
+  version: number
+  alertConfigs?: Record<string, number>
+  incidents?: Record<string, number>
+  maintenances?: Record<string, number>
 }
 
 export async function reconcileAlertConfigs(
   api: AlertConfigsApi,
   desired: AlertConfigManifest[],
   stateFile: StateFile | null,
-  opts: { deleteOrphans?: boolean; name?: string } = {}
+  opts: { deleteOrphans?: boolean; name?: string } = {},
 ): Promise<Change<AlertConfigManifest>[]> {
-  const filtered = opts.name ? desired.filter((a) => a.metadata.name === opts.name) : desired;
+  const filtered = opts.name ? desired.filter((a) => a.metadata.name === opts.name) : desired
 
-  const remote = await api.list();
-  const stateConfigs = stateFile?.alertConfigs ?? {};
+  const remote = await api.list()
+  const stateConfigs = stateFile?.alertConfigs ?? {}
 
-  const desiredMap = new Map<string, AlertConfigManifest>();
+  const desiredMap = new Map<string, AlertConfigManifest>()
   for (const a of filtered) {
-    desiredMap.set(a.metadata.name, a);
+    desiredMap.set(a.metadata.name, a)
   }
 
-  const actualMap = new Map<string, Record<string, unknown>>();
+  const actualMap = new Map<string, Record<string, unknown>>()
   for (const r of remote) {
-    const matchingName = findNameById(stateConfigs, r.id);
+    const matchingName = findNameById(stateConfigs, r.id)
     if (matchingName && desiredMap.has(matchingName)) {
-      actualMap.set(matchingName, configFromApi(r));
+      actualMap.set(matchingName, configFromApi(r))
     } else if (opts.deleteOrphans) {
       // include orphaned configs for deletion
-      const orphanKey = matchingName ?? `orphan-${r.id}`;
-      actualMap.set(orphanKey, configFromApi(r));
+      const orphanKey = matchingName ?? `orphan-${r.id}`
+      actualMap.set(orphanKey, configFromApi(r))
     }
   }
 
   return diff(desiredMap, actualMap, stripServerFields, {
     deleteOrphans: opts.deleteOrphans,
-  });
+  })
 }
 
 function findNameById(stateConfigs: Record<string, number>, id: number): string | undefined {
   for (const [name, stateId] of Object.entries(stateConfigs)) {
-    if (stateId === id) return name;
+    if (stateId === id) return name
   }
-  return undefined;
+  return undefined
 }
 
 function configFromApi(config: AlertConfig): Record<string, unknown> {
@@ -64,5 +64,5 @@ function configFromApi(config: AlertConfig): Record<string, unknown> {
     id: config.id,
     createdAt: config.createdAt,
     updatedAt: config.updatedAt,
-  };
+  }
 }

@@ -1,18 +1,18 @@
-import { defineCommand } from "citty";
-import { consola } from "consola";
-import chalk from "chalk";
-import { loadConfig } from "@/config/loader";
-import { createKenerClient } from "@/api/client";
-import { createMonitorsApi } from "@/api/monitors";
-import { createPagesApi } from "@/api/pages";
-import { createTriggersApi } from "@/api/triggers";
-import { createAlertConfigsApi } from "@/api/alert-configs";
-import { createIncidentsApi } from "@/api/incidents";
-import { createMaintenancesApi } from "@/api/maintenances";
-import { printResourceList, printResourceDetails } from "@/output/printer";
-import type { AnyManifest } from "@/manifest/types";
-import { ConfigError, NetworkError } from "@/util/errors";
-import { contextArg, outputArg, formatKind, isValidKind } from "./shared";
+import chalk from "chalk"
+import { defineCommand } from "citty"
+import { consola } from "consola"
+import { createAlertConfigsApi } from "@/api/alert-configs"
+import { createKenerClient } from "@/api/client"
+import { createIncidentsApi } from "@/api/incidents"
+import { createMaintenancesApi } from "@/api/maintenances"
+import { createMonitorsApi } from "@/api/monitors"
+import { createPagesApi } from "@/api/pages"
+import { createTriggersApi } from "@/api/triggers"
+import { loadConfig } from "@/config/loader"
+import type { AnyManifest } from "@/manifest/types"
+import { printResourceDetails, printResourceList } from "@/output/printer"
+import { ConfigError, NetworkError } from "@/util/errors"
+import { contextArg, formatKind, isValidKind, outputArg } from "./shared"
 
 export const getCommand = defineCommand({
   meta: {
@@ -38,111 +38,113 @@ export const getCommand = defineCommand({
     try {
       const config = await loadConfig({
         context: args.context,
-      });
+      })
 
-      const client = createKenerClient(config.instance, config.apiKey);
-      const kind = formatKind(args.kind);
-      const format = (args.output as "table" | "json" | "yaml") ?? "table";
+      const client = createKenerClient(config.instance, config.apiKey)
+      const kind = formatKind(args.kind)
+      const format = (args.output as "table" | "json" | "yaml") ?? "table"
 
       if (!isValidKind(kind)) {
-        consola.error(`Unknown resource kind: ${args.kind}. Valid kinds: Monitor, Page, AlertTrigger, AlertConfig, Incident, Maintenance`);
-        process.exit(1);
+        consola.error(
+          `Unknown resource kind: ${args.kind}. Valid kinds: Monitor, Page, AlertTrigger, AlertConfig, Incident, Maintenance`,
+        )
+        process.exit(1)
       }
 
       if (args.id) {
-        let resource: unknown;
+        let resource: unknown
         switch (kind) {
           case "Monitor": {
-            const api = createMonitorsApi(client);
-            if (!isNaN(Number(args.id))) {
-              resource = await api.get(Number(args.id));
+            const api = createMonitorsApi(client)
+            if (!Number.isNaN(Number(args.id))) {
+              resource = await api.get(Number(args.id))
             } else {
-              const all = await api.list();
-              resource = all.find((m) => m.tag === args.id);
-              if (!resource) throw new Error(`Monitor with tag "${args.id}" not found`);
+              const all = await api.list()
+              resource = all.find((m) => m.tag === args.id)
+              if (!resource) throw new Error(`Monitor with tag "${args.id}" not found`)
             }
-            break;
+            break
           }
           case "Page": {
-            const api = createPagesApi(client);
-            if (!isNaN(Number(args.id))) {
-              resource = await api.get(Number(args.id));
+            const api = createPagesApi(client)
+            if (!Number.isNaN(Number(args.id))) {
+              resource = await api.get(Number(args.id))
             } else {
-              const all = await api.list();
-              resource = all.find((p) => p.path === args.id);
-              if (!resource) throw new Error(`Page with path "${args.id}" not found`);
+              const all = await api.list()
+              resource = all.find((p) => p.path === args.id)
+              if (!resource) throw new Error(`Page with path "${args.id}" not found`)
             }
-            break;
+            break
           }
           case "AlertTrigger": {
-            const api = createTriggersApi(client);
-            if (!isNaN(Number(args.id))) {
-              resource = await api.get(Number(args.id));
+            const api = createTriggersApi(client)
+            if (!Number.isNaN(Number(args.id))) {
+              resource = await api.get(Number(args.id))
             } else {
-              const all = await api.list();
-              resource = all.find((t) => t.name === args.id);
-              if (!resource) throw new Error(`Trigger with name "${args.id}" not found`);
+              const all = await api.list()
+              resource = all.find((t) => t.name === args.id)
+              if (!resource) throw new Error(`Trigger with name "${args.id}" not found`)
             }
-            break;
+            break
           }
           case "AlertConfig": {
-            const api = createAlertConfigsApi(client);
-            resource = await api.get(Number(args.id));
-            break;
+            const api = createAlertConfigsApi(client)
+            resource = await api.get(Number(args.id))
+            break
           }
           case "Incident": {
-            const api = createIncidentsApi(client);
-            resource = await api.get(Number(args.id));
-            break;
+            const api = createIncidentsApi(client)
+            resource = await api.get(Number(args.id))
+            break
           }
           case "Maintenance": {
-            const api = createMaintenancesApi(client);
-            resource = await api.get(Number(args.id));
-            break;
+            const api = createMaintenancesApi(client)
+            resource = await api.get(Number(args.id))
+            break
           }
           default:
-            throw new Error(`Unknown kind: ${kind}`);
+            throw new Error(`Unknown kind: ${kind}`)
         }
 
-        printResourceDetails(resource as AnyManifest, format);
+        printResourceDetails(resource as AnyManifest, format)
       } else {
-        let resources: unknown[];
+        let resources: unknown[]
         switch (kind) {
           case "Monitor":
-            resources = await createMonitorsApi(client).list();
-            break;
+            resources = await createMonitorsApi(client).list()
+            break
           case "Page":
-            resources = await createPagesApi(client).list();
-            break;
+            resources = await createPagesApi(client).list()
+            break
           case "AlertTrigger":
-            resources = await createTriggersApi(client).list();
-            break;
+            resources = await createTriggersApi(client).list()
+            break
           case "AlertConfig":
-            resources = await createAlertConfigsApi(client).list();
-            break;
+            resources = await createAlertConfigsApi(client).list()
+            break
           case "Incident":
-            resources = await createIncidentsApi(client).list();
-            break;
+            resources = await createIncidentsApi(client).list()
+            break
           case "Maintenance":
-            resources = await createMaintenancesApi(client).list();
-            break;
+            resources = await createMaintenancesApi(client).list()
+            break
           default:
-            throw new Error(`Unknown kind: ${kind}`);
+            throw new Error(`Unknown kind: ${kind}`)
         }
 
-        printResourceList(kind, resources, format);
+        printResourceList(kind, resources, format)
       }
     } catch (err) {
       if (err instanceof ConfigError) {
-        consola.error(err.toString());
-        process.exit(1);
+        consola.error(err.toString())
+        process.exit(1)
       }
       if (err instanceof NetworkError) {
-        consola.error(chalk.red(err.message));
-        process.exit(1);
+        consola.error(chalk.red(err.message))
+        process.exit(1)
       }
-      consola.error(chalk.red(err instanceof Error ? err.message : String(err)));
-      process.exit(1);
+      consola.error(chalk.red(err instanceof Error ? err.message : String(err)))
+      process.exit(1)
     }
   },
-});
+})

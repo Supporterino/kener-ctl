@@ -1,16 +1,22 @@
-import { defineCommand } from "citty";
-import { consola } from "consola";
-import chalk from "chalk";
-import { loadConfig, stateFilePath } from "@/config/loader";
-import { createKenerClient } from "@/api/client";
-import { plan } from "@/reconciler/engine";
-import { printPlanTable } from "@/output/printer";
-import type { PlanRow } from "@/output/printer";
-import { ValidationError, ConfigError, NetworkError } from "@/util/errors";
+import chalk from "chalk"
+import { defineCommand } from "citty"
+import { consola } from "consola"
+import { createKenerClient } from "@/api/client"
+import { loadConfig, stateFilePath } from "@/config/loader"
+import type { PlanRow } from "@/output/printer"
+import { printPlanTable } from "@/output/printer"
+import { plan } from "@/reconciler/engine"
+import { ConfigError, NetworkError, ValidationError } from "@/util/errors"
 import {
-  kindArg, tagArg, nameArg, pathArg, contextArg, stateDirArg,
-  deleteOrphansFlag, formatKind,
-} from "./shared";
+  contextArg,
+  deleteOrphansFlag,
+  formatKind,
+  kindArg,
+  nameArg,
+  pathArg,
+  stateDirArg,
+  tagArg,
+} from "./shared"
 
 export const planCommand = defineCommand({
   meta: {
@@ -30,9 +36,9 @@ export const planCommand = defineCommand({
     try {
       const config = await loadConfig({
         context: args.context,
-      });
+      })
 
-      const client = createKenerClient(config.instance, config.apiKey);
+      const client = createKenerClient(config.instance, config.apiKey)
 
       const result = await plan({
         client,
@@ -45,24 +51,24 @@ export const planCommand = defineCommand({
         tag: args.tag,
         name: args.name,
         path: args.path,
-      });
+      })
 
-      printPlanTable(result.changes as PlanRow[]);
+      printPlanTable(result.changes as PlanRow[])
     } catch (err) {
       if (err instanceof ValidationError) {
-        consola.error(err.toString());
-        process.exit(2);
+        consola.error(err.toString())
+        process.exit(2)
       }
       if (err instanceof ConfigError) {
-        consola.error(err.toString());
-        process.exit(1);
+        consola.error(err.toString())
+        process.exit(1)
       }
       if (err instanceof NetworkError) {
-        consola.error(chalk.red(err.message));
-        process.exit(1);
+        consola.error(chalk.red(err.message))
+        process.exit(1)
       }
-      consola.error(chalk.red(err instanceof Error ? err.message : String(err)));
-      process.exit(1);
+      consola.error(chalk.red(err instanceof Error ? err.message : String(err)))
+      process.exit(1)
     }
   },
-});
+})

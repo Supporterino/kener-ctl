@@ -1,7 +1,7 @@
-import ky, { type KyInstance, type HTTPError } from "ky";
+import ky, { type HTTPError, type KyInstance } from "ky"
 
 export function createKenerClient(baseUrl: string, apiKey: string): KyInstance {
-  const normalizedUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+  const normalizedUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl
 
   return ky.create({
     prefixUrl: `${normalizedUrl}/api/v4`,
@@ -17,21 +17,21 @@ export function createKenerClient(baseUrl: string, apiKey: string): KyInstance {
     hooks: {
       beforeError: [
         async (error: HTTPError) => {
-          const { response } = error;
+          const { response } = error
           if (response.body) {
             try {
-              const cloned = response.clone();
-              const body = await cloned.text();
+              const cloned = response.clone()
+              const body = await cloned.text()
               if (body) {
-                error.message = `${error.message} — ${body}`;
+                error.message = `${error.message} — ${body}`
               }
             } catch {
               // ignore body parse errors
             }
           }
-          return error;
+          return error
         },
       ],
     },
-  });
+  })
 }

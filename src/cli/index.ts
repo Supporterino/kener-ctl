@@ -1,12 +1,12 @@
-import { defineCommand, runMain } from "citty";
-import { applyCommand } from "./apply";
-import { planCommand } from "./plan";
-import { validateCommand } from "./validate";
-import { pullCommand } from "./pull";
-import { getCommand } from "./get";
-import { deleteCommand } from "./delete";
-import { configCommand } from "./config";
-import { verboseFlag } from "./shared";
+import { defineCommand, runMain } from "citty"
+import { applyCommand } from "./apply"
+import { configCommand } from "./config"
+import { deleteCommand } from "./delete"
+import { getCommand } from "./get"
+import { planCommand } from "./plan"
+import { pullCommand } from "./pull"
+import { verboseFlag } from "./shared"
+import { validateCommand } from "./validate"
 
 const mainCommand = defineCommand({
   meta: {
@@ -26,6 +26,6 @@ const mainCommand = defineCommand({
     delete: deleteCommand,
     config: configCommand,
   },
-});
+})
 
-await runMain(mainCommand);
+await runMain(mainCommand)
