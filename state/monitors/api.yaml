@@ -1,0 +1,13 @@
+kind: Monitor
+metadata:
+  tag: my-api
+spec:
+  name: My API
+  description: "Main application API health check"
+  type: API
+  categoryName: Production
+  cronSchedule: "*/5 * * * *"
+  typeData:
+    url: https://api.example.com/health
+    method: GET
+    timeout: 10000

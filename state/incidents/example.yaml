@@ -1,0 +1,12 @@
+kind: Incident
+metadata:
+  name: db-degraded-2024
+spec:
+  title: Database Degraded
+  state: INVESTIGATING
+  affectedMonitors:
+    - tag: my-api
+      impact: DEGRADED
+  updates:
+    - message: "Investigating increased latency on primary database."
+      state: INVESTIGATING
