@@ -226,7 +226,7 @@ All commands are registered in `src/cli/index.ts` via `citty`'s `defineCommand` 
 | `apply`       | Reconcile remote to match local state                    |
 | `plan`        | Show diff without applying (same as `apply --dry-run`)   |
 | `validate`    | Parse and validate all manifest files (no API calls)     |
-| `pull`        | Export remote state as YAML manifests into `stateDir`    |
+| `pull`        | Export remote state as YAML manifests into `manifestDir`    |
 | `get`         | Fetch and print one or all resources of a kind           |
 | `delete`      | Immediately delete a single remote resource              |
 
@@ -263,7 +263,7 @@ Key fields:
 - `version` — config schema version (literal `1`)
 - `current-context` — default context name
 - `contexts` — array of context objects (`name`, `instance`, `apiKey`)
-- `defaults.stateDir` — root directory for manifest files (default: `./state`)
+- `defaults.manifestDir` — root directory for manifest files (default: `./manifests`)
 - `defaults.dryRun` — plan only, never mutate (default: `false`)
 - `defaults.deleteOrphans` — prune remote resources absent from state (default: `false`)
 - `defaults.concurrency` — parallel API calls during apply (default: `4`)

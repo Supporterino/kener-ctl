@@ -114,3 +114,6 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Homebrew tap (separate repo)
+homebrew-kener-ctl/

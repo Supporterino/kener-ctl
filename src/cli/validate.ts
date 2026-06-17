@@ -5,7 +5,7 @@ import { loadConfig } from "@/config/loader"
 import { validateManifests } from "@/manifest/loader"
 import { printValidationErrors } from "@/output/printer"
 import { ConfigError } from "@/util/errors"
-import { contextArg, stateDirArg } from "./shared"
+import { contextArg, manifestDirArg } from "./shared"
 
 export const validateCommand = defineCommand({
   meta: {
@@ -14,21 +14,21 @@ export const validateCommand = defineCommand({
   },
   args: {
     context: contextArg,
-    "state-dir": stateDirArg,
+    "manifest-dir": manifestDirArg,
   },
   async run({ args }) {
     try {
-      let stateDir = args["state-dir"] ?? "./state"
+      let manifestDir = args["manifest-dir"] ?? "./manifests"
 
       try {
         const config = await loadConfig({
           context: args.context,
         })
-        stateDir = args["state-dir"] ?? config.stateDir
+        manifestDir = args["manifest-dir"] ?? config.manifestDir
       } catch (err) {
         if (err instanceof ConfigError) {
-          if (!args["state-dir"] && !args.context) {
-            consola.info("No config file found, using default stateDir: ./state")
+          if (!args["manifest-dir"] && !args.context) {
+            consola.info("No config file found, using default manifestDir: ./manifests")
           } else {
             consola.error(err.toString())
             process.exit(1)
@@ -38,7 +38,7 @@ export const validateCommand = defineCommand({
         }
       }
 
-      const { valid, errors } = validateManifests(stateDir)
+      const { valid, errors } = validateManifests(manifestDir)
 
       if (valid) {
         consola.success(chalk.green("All manifests are valid."))

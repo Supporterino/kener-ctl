@@ -9,7 +9,7 @@ export const ContextSchema = z.object({
 export type Context = z.infer<typeof ContextSchema>
 
 export const DefaultsSchema = z.object({
-  stateDir: z.string().default("./state"),
+  manifestDir: z.string().default("./manifests"),
   concurrency: z.number().int().min(1).max(20).default(4),
   dryRun: z.boolean().default(false),
   deleteOrphans: z.boolean().default(false),
@@ -52,7 +52,7 @@ export type Config = z.infer<typeof ConfigSchema>
 export interface ResolvedConfig {
   instance: string
   apiKey: string
-  stateDir: string
+  manifestDir: string
   dryRun: boolean
   deleteOrphans: boolean
   concurrency: number

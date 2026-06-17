@@ -9,17 +9,17 @@ export interface LoadManifestsResult {
   errors: Array<{ filePath: string; message: string }>
 }
 
-export function loadManifests(stateDir: string): LoadManifestsResult {
+export function loadManifests(manifestDir: string): LoadManifestsResult {
   const manifests: AnyManifest[] = []
   const errors: Array<{ filePath: string; message: string }> = []
 
-  if (!existsSync(stateDir)) {
-    mkdirSync(stateDir, { recursive: true })
+  if (!existsSync(manifestDir)) {
+    mkdirSync(manifestDir, { recursive: true })
     return { manifests, errors }
   }
 
   const glob = new Glob("**/*.{yaml,yml}")
-  const files = [...glob.scanSync({ cwd: stateDir, absolute: true, onlyFiles: true })]
+  const files = [...glob.scanSync({ cwd: manifestDir, absolute: true, onlyFiles: true })]
 
   for (const filePath of files) {
     try {
@@ -49,11 +49,11 @@ export function loadManifests(stateDir: string): LoadManifestsResult {
   return { manifests, errors }
 }
 
-export function validateManifests(stateDir: string): {
+export function validateManifests(manifestDir: string): {
   valid: boolean
   errors: Array<{ filePath: string; message: string }>
 } {
-  const { errors } = loadManifests(stateDir)
+  const { errors } = loadManifests(manifestDir)
   return { valid: errors.length === 0, errors }
 }
 

@@ -44,7 +44,7 @@ describe("DefaultsSchema", () => {
     const result = DefaultsSchema.safeParse({})
     expect(result.success).toBe(true)
     if (result.success) {
-      expect(result.data.stateDir).toBe("./state")
+      expect(result.data.manifestDir).toBe("./manifests")
       expect(result.data.concurrency).toBe(4)
       expect(result.data.dryRun).toBe(false)
       expect(result.data.deleteOrphans).toBe(false)
@@ -53,11 +53,11 @@ describe("DefaultsSchema", () => {
 
   it("allows partial defaults", () => {
     const result = DefaultsSchema.safeParse({
-      stateDir: "./custom",
+      manifestDir: "./custom",
     })
     expect(result.success).toBe(true)
     if (result.success) {
-      expect(result.data.stateDir).toBe("./custom")
+      expect(result.data.manifestDir).toBe("./custom")
       expect(result.data.concurrency).toBe(4)
     }
   })
@@ -101,7 +101,7 @@ describe("ConfigSchema", () => {
     const result = ConfigSchema.safeParse(validConfig)
     expect(result.success).toBe(true)
     if (result.success) {
-      expect(result.data.defaults.stateDir).toBe("./state")
+      expect(result.data.defaults.manifestDir).toBe("./manifests")
       expect(result.data.defaults.concurrency).toBe(4)
     }
   })
@@ -109,11 +109,11 @@ describe("ConfigSchema", () => {
   it("uses provided defaults", () => {
     const result = ConfigSchema.safeParse({
       ...validConfig,
-      defaults: { stateDir: "./foo", concurrency: 8, dryRun: true, deleteOrphans: true },
+      defaults: { manifestDir: "./foo", concurrency: 8, dryRun: true, deleteOrphans: true },
     })
     expect(result.success).toBe(true)
     if (result.success) {
-      expect(result.data.defaults.stateDir).toBe("./foo")
+      expect(result.data.defaults.manifestDir).toBe("./foo")
       expect(result.data.defaults.concurrency).toBe(8)
     }
   })

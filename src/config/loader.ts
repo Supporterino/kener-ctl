@@ -73,7 +73,7 @@ export async function loadConfig(opts: LoadConfigOptions = {}): Promise<Resolved
   return {
     instance: selectedContext.instance,
     apiKey: selectedContext.apiKey,
-    stateDir: config.defaults.stateDir,
+    manifestDir: config.defaults.manifestDir,
     dryRun: config.defaults.dryRun,
     deleteOrphans: config.defaults.deleteOrphans,
     concurrency: config.defaults.concurrency,

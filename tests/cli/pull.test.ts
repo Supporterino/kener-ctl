@@ -22,8 +22,8 @@ describe("pull command definition", () => {
     expect(args()).toHaveProperty("context")
   })
 
-  it("includes state-dir arg", () => {
-    expect(args()).toHaveProperty("state-dir")
+  it("includes manifest-dir arg", () => {
+    expect(args()).toHaveProperty("manifest-dir")
   })
 
   it("includes overwrite flag with default false", () => {

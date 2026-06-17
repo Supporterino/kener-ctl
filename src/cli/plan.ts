@@ -14,7 +14,7 @@ import {
   kindArg,
   nameArg,
   pathArg,
-  stateDirArg,
+  manifestDirArg,
   tagArg,
 } from "./shared"
 
@@ -29,7 +29,7 @@ export const planCommand = defineCommand({
     name: nameArg,
     path: pathArg,
     context: contextArg,
-    "state-dir": stateDirArg,
+    "manifest-dir": manifestDirArg,
     "delete-orphans": deleteOrphansFlag,
   },
   async run({ args }) {
@@ -42,7 +42,7 @@ export const planCommand = defineCommand({
 
       const result = await plan({
         client,
-        stateDir: args["state-dir"] ?? config.stateDir,
+        manifestDir: args["manifest-dir"] ?? config.manifestDir,
         dryRun: true,
         deleteOrphans: args["delete-orphans"] ?? false,
         concurrency: config.concurrency,

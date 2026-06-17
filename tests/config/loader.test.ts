@@ -71,7 +71,7 @@ describe("loadConfig (integration)", () => {
     expect(config.instance).toBe("https://status.prod.example.com")
     expect(config.apiKey).toBe("sk-prod")
     expect(config.contextName).toBe("prod")
-    expect(config.stateDir).toBe("./state")
+    expect(config.manifestDir).toBe("./manifests")
     expect(config.concurrency).toBe(4)
   })
 

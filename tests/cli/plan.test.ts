@@ -26,8 +26,8 @@ describe("plan command definition", () => {
     expect(args()).toHaveProperty("context")
   })
 
-  it("includes state-dir arg", () => {
-    expect(args()).toHaveProperty("state-dir")
+  it("includes manifest-dir arg", () => {
+    expect(args()).toHaveProperty("manifest-dir")
   })
 
   it("does NOT include dry-run flag (plan is always dry-run)", () => {

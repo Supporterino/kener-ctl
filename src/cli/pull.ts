@@ -12,7 +12,7 @@ import { createPagesApi } from "@/api/pages"
 import { createTriggersApi } from "@/api/triggers"
 import { loadConfig } from "@/config/loader"
 import { ConfigError, NetworkError } from "@/util/errors"
-import { contextArg, formatKind, kindArg, overwriteFlag, stateDirArg } from "./shared"
+import { contextArg, formatKind, kindArg, overwriteFlag, manifestDirArg } from "./shared"
 
 export function serializeToYaml(obj: unknown): string {
   return JSON.stringify(obj, null, 2)
@@ -26,7 +26,7 @@ export const pullCommand = defineCommand({
   args: {
     kind: kindArg,
     context: contextArg,
-    "state-dir": stateDirArg,
+    "manifest-dir": manifestDirArg,
     overwrite: overwriteFlag,
   },
   async run({ args }) {
@@ -36,7 +36,7 @@ export const pullCommand = defineCommand({
       })
 
       const client = createKenerClient(config.instance, config.apiKey)
-      const stateDir = args["state-dir"] ?? config.stateDir
+      const manifestDir = args["manifest-dir"] ?? config.manifestDir
 
       const kinds = args.kind
         ? [formatKind(args.kind)]
@@ -71,7 +71,7 @@ export const pullCommand = defineCommand({
           continue
         }
 
-        const kindDir = join(stateDir, `${kind.toLowerCase()}s`)
+        const kindDir = join(manifestDir, `${kind.toLowerCase()}s`)
         if (!existsSync(kindDir)) {
           mkdirSync(kindDir, { recursive: true })
         }

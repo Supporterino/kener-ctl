@@ -27,11 +27,11 @@ export const contextArg = {
   valueHint: "name",
 }
 
-export const stateDirArg = {
+export const manifestDirArg = {
   type: "string" as const,
-  description: "Override state directory",
+  description: "Override manifest directory",
   valueHint: "path",
-  default: "./state",
+  default: "./manifests",
 }
 
 export const dryRunFlag = {

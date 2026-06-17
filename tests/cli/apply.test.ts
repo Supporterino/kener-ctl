@@ -35,9 +35,9 @@ describe("apply command definition", () => {
     expect(args).toHaveProperty("context")
   })
 
-  it("includes state-dir arg", () => {
+  it("includes manifest-dir arg", () => {
     const args = (applyCommand as unknown as { args: Record<string, unknown> }).args
-    expect(args).toHaveProperty("state-dir")
+    expect(args).toHaveProperty("manifest-dir")
   })
 
   it("has run function", () => {

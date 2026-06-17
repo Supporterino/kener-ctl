@@ -32,7 +32,7 @@ const DELETE_ORDER: ManifestKind[] = [...APPLY_ORDER].reverse()
 
 export interface ReconcileContext {
   client: KyInstance
-  stateDir: string
+  manifestDir: string
   dryRun: boolean
   deleteOrphans: boolean
   concurrency: number
@@ -60,7 +60,7 @@ export interface PlanResult {
 }
 
 export async function reconcile(ctx: ReconcileContext): Promise<ReconcileResult> {
-  const { manifests, errors: validationErrors } = loadManifests(ctx.stateDir)
+  const { manifests, errors: validationErrors } = loadManifests(ctx.manifestDir)
 
   if (validationErrors.length > 0) {
     throw new ValidationError(validationErrors)

@@ -15,7 +15,7 @@ import {
   kindArg,
   nameArg,
   pathArg,
-  stateDirArg,
+  manifestDirArg,
   tagArg,
 } from "./shared"
 
@@ -30,7 +30,7 @@ export const applyCommand = defineCommand({
     name: nameArg,
     path: pathArg,
     context: contextArg,
-    "state-dir": stateDirArg,
+    "manifest-dir": manifestDirArg,
     "dry-run": dryRunFlag,
     "delete-orphans": deleteOrphansFlag,
   },
@@ -40,7 +40,7 @@ export const applyCommand = defineCommand({
         context: args.context,
       })
 
-      const resolvedStateDir = args["state-dir"] ?? config.stateDir
+      const resolvedManifestDir = args["manifest-dir"] ?? config.manifestDir
       const resolvedDryRun = args["dry-run"] ?? config.dryRun
       const resolvedDeleteOrphans = args["delete-orphans"] ?? config.deleteOrphans
 
@@ -48,7 +48,7 @@ export const applyCommand = defineCommand({
 
       const result = await reconcile({
         client,
-        stateDir: resolvedStateDir,
+        manifestDir: resolvedManifestDir,
         dryRun: resolvedDryRun,
         deleteOrphans: resolvedDeleteOrphans,
         concurrency: config.concurrency,

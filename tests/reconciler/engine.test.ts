@@ -6,13 +6,13 @@ import type { KyInstance } from "ky"
 import { loadStateFile, plan, reconcile, saveStateFile } from "@/reconciler/engine"
 
 let baseDir: string
-let stateDir: string
+let manifestDir: string
 
 beforeAll(() => {
   baseDir = join(tmpdir(), `kener-ctl-engine-${Date.now()}`)
   mkdirSync(baseDir, { recursive: true })
-  stateDir = join(baseDir, "state", "test")
-  mkdirSync(stateDir, { recursive: true })
+  manifestDir = join(baseDir, "state", "test")
+  mkdirSync(manifestDir, { recursive: true })
 })
 
 afterAll(() => {
@@ -21,7 +21,7 @@ afterAll(() => {
   }
 })
 
-function createStateDir(name: string): string {
+function createManifestDir(name: string): string {
   const dir = join(baseDir, `state_${name}`)
   mkdirSync(dir, { recursive: true })
   return dir
@@ -31,8 +31,8 @@ function stateFilePathForDir(dir: string): string {
   return join(baseDir, `state_file_${dir.split("_").pop()}.json`)
 }
 
-function writeManifest(stateDir: string, filename: string, content: string) {
-  writeFileSync(join(stateDir, filename), content)
+function writeManifest(manifestDir: string, filename: string, content: string) {
+  writeFileSync(join(manifestDir, filename), content)
 }
 
 function createMockKy(
@@ -61,14 +61,14 @@ function createMockKy(
 
 describe("engine reconcile", () => {
   it("throws on invalid manifests", async () => {
-    const dir = createStateDir("invalid")
+    const dir = createManifestDir("invalid")
     writeManifest(dir, "bad.yaml", "kind: Monitor\nmetadata: {}\nspec:\n  type: INVALID")
     const client = createMockKy()
     const sfp = stateFilePathForDir(dir)
     await expect(
       reconcile({
         client,
-        stateDir: dir,
+        manifestDir: dir,
         dryRun: true,
         deleteOrphans: false,
         concurrency: 4,
@@ -78,7 +78,7 @@ describe("engine reconcile", () => {
   })
 
   it("reconcile creates new monitors", async () => {
-    const dir = createStateDir("create")
+    const dir = createManifestDir("create")
     writeManifest(
       dir,
       "monitors.yaml",
@@ -93,7 +93,7 @@ spec:
     const sfp = stateFilePathForDir(dir)
     const result = await reconcile({
       client,
-      stateDir: dir,
+      manifestDir: dir,
       dryRun: false,
       deleteOrphans: false,
       concurrency: 4,
@@ -104,7 +104,7 @@ spec:
   })
 
   it("reconcile respects kind filter", async () => {
-    const dir = createStateDir("kind")
+    const dir = createManifestDir("kind")
     writeManifest(
       dir,
       "trigger.yaml",
@@ -129,7 +129,7 @@ spec:
     const sfp = stateFilePathForDir(dir)
     const result = await reconcile({
       client,
-      stateDir: dir,
+      manifestDir: dir,
       dryRun: false,
       deleteOrphans: false,
       concurrency: 4,
@@ -141,7 +141,7 @@ spec:
   })
 
   it("plan does not mutate (dryRun=true)", async () => {
-    const dir = createStateDir("plan")
+    const dir = createManifestDir("plan")
     writeManifest(
       dir,
       "test.yaml",
@@ -156,7 +156,7 @@ spec:
     const sfp = stateFilePathForDir(dir)
     const result = await plan({
       client,
-      stateDir: dir,
+      manifestDir: dir,
       dryRun: true,
       deleteOrphans: false,
       concurrency: 4,
@@ -167,12 +167,12 @@ spec:
   })
 
   it("plan returns empty when no manifests", async () => {
-    const dir = createStateDir("empty")
+    const dir = createManifestDir("empty")
     const client = createMockKy()
     const sfp = stateFilePathForDir(dir)
     const result = await plan({
       client,
-      stateDir: dir,
+      manifestDir: dir,
       dryRun: true,
       deleteOrphans: false,
       concurrency: 4,
@@ -184,7 +184,7 @@ spec:
 
 describe("engine dependency ordering", () => {
   it("calls list in apply order: triggers → monitors → pages → alertConfigs → incidents → maintenances", async () => {
-    const dir = createStateDir("order")
+    const dir = createManifestDir("order")
     const callOrder: string[] = []
     const mockClient = {
       get: (path: string | URL) => {
@@ -250,7 +250,7 @@ spec:
     const sfp = stateFilePathForDir(dir)
     await reconcile({
       client: mockClient,
-      stateDir: dir,
+      manifestDir: dir,
       dryRun: false,
       deleteOrphans: false,
       concurrency: 4,
@@ -299,7 +299,7 @@ describe("state file management", () => {
 
 describe("engine error handling", () => {
   it("collects API errors per resource without aborting", async () => {
-    const dir = createStateDir("errors")
+    const dir = createManifestDir("errors")
     const errorClient = {
       get: (path: string | URL) => {
         const p = typeof path === "string" ? path : path.toString()
@@ -341,7 +341,7 @@ spec:
     const sfp = stateFilePathForDir(dir)
     const result = await reconcile({
       client: errorClient,
-      stateDir: dir,
+      manifestDir: dir,
       dryRun: false,
       deleteOrphans: false,
       concurrency: 4,
@@ -352,7 +352,7 @@ spec:
   })
 
   it("produces error for failed update", async () => {
-    const dir = createStateDir("updaterr")
+    const dir = createManifestDir("updaterr")
     const errorClient = {
       get: (path: string | URL) => {
         const p = typeof path === "string" ? path : path.toString()
@@ -390,7 +390,7 @@ spec:
     const sfp = stateFilePathForDir(dir)
     const result = await reconcile({
       client: errorClient,
-      stateDir: dir,
+      manifestDir: dir,
       dryRun: false,
       deleteOrphans: false,
       concurrency: 4,

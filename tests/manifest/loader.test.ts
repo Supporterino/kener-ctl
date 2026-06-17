@@ -146,7 +146,7 @@ spec:
     expect(result.manifests).toHaveLength(0)
   })
 
-  it("creates directory if stateDir does not exist", () => {
+  it("creates directory if manifestDir does not exist", () => {
     const newDir = join(testDir, "created")
     const result = loadManifests(newDir)
     expect(existsSync(newDir)).toBe(true)
