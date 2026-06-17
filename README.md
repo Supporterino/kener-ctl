@@ -31,7 +31,20 @@ look like, run `kener-ctl apply`, and the tool reconciles reality.
 
 ## Installation
 
-### Standalone Binary (recommended)
+### Homebrew (macOS)
+
+```bash
+brew tap supporterino/kener-ctl
+brew install kener-ctl
+```
+
+To upgrade:
+
+```bash
+brew upgrade kener-ctl
+```
+
+### Standalone Binary
 
 Download a prebuilt binary for your platform — no runtime required.
 
@@ -68,14 +81,6 @@ sudo mv kener-ctl /usr/local/bin/
 curl -L -o kener-ctl.exe https://github.com/Supporterino/kener-ctl/releases/latest/download/kener-ctl-win-x64.exe
 ```
 
-### npm
-
-```bash
-npm install -g kener-ctl
-```
-
-> **Note:** The npm package expects the [Bun](https://bun.sh) runtime to be installed.
-
 ### From Source
 
 ```bash
@@ -85,10 +90,9 @@ bun install
 bun run build
 ```
 
-The built artifact is `dist/cli/index.js`. Run it with `bun dist/cli/index.js` or link it:
+The built artifact is `dist/cli/index.js`. Run it with:
 ```bash
-bun link
-kener-ctl --help
+bun run dist/cli/index.js
 ```
 
 ---
@@ -109,7 +113,7 @@ contexts:
     instance: <your-instance-url>
     apiKey: <your-api-key>
 defaults:
-  stateDir: ./state
+  manifestDir: ./manifests
   concurrency: 4
 ```
 
@@ -118,7 +122,7 @@ and `<your-api-key>` with a Kener API key.
 
 ### Step 2: Write a monitor manifest
 
-Create `./state/monitors/my-api.yaml`:
+Create `./manifests/monitors/my-api.yaml`:
 
 ```yaml
 kind: Monitor
@@ -185,7 +189,7 @@ contexts:
     apiKey: kp_staging789xyz
 
 defaults:
-  stateDir: ./state          # Root directory for manifest files
+  manifestDir: ./manifests    # Root directory for manifest files
   concurrency: 4              # Parallel API calls during apply (1-20)
   dryRun: false               # Plan only, never mutate
   deleteOrphans: false        # Prune remote resources absent from state
@@ -207,9 +211,9 @@ This makes multi-instance workflows straightforward. Keep separate configs for p
 
 ### Concept
 
-Resources are described as YAML files under the `stateDir` (default `./state/`). Each file
+Resources are described as YAML files under the `manifestDir` (default `./manifests/`). Each file
 contains exactly one resource, identified by `kind`. Directory names follow the convention
-`<kind-lowercase>s/` (e.g. `state/monitors/`, `state/pages/`).
+`<kind-lowercase>s/` (e.g. `manifests/monitors/`, `manifests/pages/`).
 
 ### Reference Table
 
@@ -357,7 +361,7 @@ resource kinds and common configurations.
 | Flag               | Description                                       |
 | ------------------ | ------------------------------------------------- |
 | `--context`        | Kener context to use (overrides config/env)       |
-| `--state-dir`      | Override state directory (default `./state`)      |
+| `--manifest-dir`   | Override manifest directory (default `./manifests`)
 | `--dry-run`        | Show plan only, make no changes                   |
 | `--delete-orphans` | Delete remote resources not present in state      |
 | `--verbose`        | Enable verbose logging                            |
@@ -427,12 +431,12 @@ contexts:
     apiKey: kp_stage_xxx
 
 defaults:
-  stateDir: ./state
+  manifestDir: ./manifests
 ```
 
 ```bash
-kener-ctl plan --context staging --state-dir ./state-staging
-kener-ctl apply --context production --state-dir ./state-prod
+kener-ctl plan --context staging --manifest-dir ./manifests-staging
+kener-ctl apply --context production --manifest-dir ./manifests-prod
 ```
 
 ### Onboarding from an Existing Instance
@@ -443,7 +447,7 @@ Already have a Kener instance set up through the UI? Pull everything into manife
 kener-ctl pull --context production
 ```
 
-This exports all remote resources as YAML files into your `stateDir`. From there, you can
+This exports all remote resources as YAML files into your `manifestDir`. From there, you can
 version-control them and start managing declaratively.
 
 ---
@@ -491,6 +495,18 @@ bun install
 | `check`         | Run Biome lint + format check                         |
 | `check:fix`     | Run Biome lint + format fix                           |
 | `release`       | Build standalone binaries for distribution            |
+
+### Releasing
+
+Bump the version, tag, and push — all in one command:
+
+```bash
+./scripts/release.sh 0.2.0
+```
+
+This updates `package.json`, commits the version bump, creates an annotated `v0.2.0` tag,
+and pushes to origin. Pushing the tag triggers the release workflow (build → GitHub Release →
+Homebrew tap update).
 
 ### Tech Stack
 

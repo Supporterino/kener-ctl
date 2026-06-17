@@ -2,9 +2,6 @@
   "name": "kener-ctl",
   "version": "0.1.0",
   "type": "module",
-  "bin": {
-    "kener-ctl": "./dist/cli/index.js"
-  },
   "scripts": {
     "dev": "bun run src/cli/index.ts",
     "build": "bun build src/cli/index.ts --outdir dist --target bun --external node-fetch-native --external giget",

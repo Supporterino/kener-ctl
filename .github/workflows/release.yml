@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: write
-  id-token: write
 
 jobs:
   build:
@@ -93,25 +92,71 @@ jobs:
             dist/release/*
             dist/checksums.txt
 
-      - name: build js for npm
-        run: bun run build
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: "24"
-          registry-url: "https://registry.npmjs.org"
-
-      - name: check npm version
-        id: npm-check
+  update-tap:
+    name: Update Homebrew Tap
+    runs-on: ubuntu-latest
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+    steps:
+      - name: update formula
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAP_REPO_TOKEN: ${{ secrets.TAP_REPO_TOKEN }}
         run: |
-          PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          if npm view "kener-ctl@$PACKAGE_VERSION" version > /dev/null 2>&1; then
-            echo "::warning::Version $PACKAGE_VERSION already exists on npm, skipping publish"
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
+          set -euo pipefail
 
-      - name: publish to npm
-        if: steps.npm-check.outputs.skip == 'false'
-        run: npm publish --provenance --access public
+          TAG="${{ github.ref_name }}"
+          VERSION="${TAG#v}"
+
+          gh release download "$TAG" \
+            -p "kener-ctl-darwin-arm64" \
+            -p "kener-ctl-darwin-x64" \
+            --dir binaries
+
+          ARM64_SHA=$(sha256sum binaries/kener-ctl-darwin-arm64 | cut -d' ' -f1)
+          X64_SHA=$(sha256sum binaries/kener-ctl-darwin-x64 | cut -d' ' -f1)
+
+          git clone \
+            "https://${TAP_REPO_TOKEN}@github.com/supporterino/homebrew-kener-ctl.git" \
+            tap-repo
+
+          cat > tap-repo/Formula/kener-ctl.rb << 'ENDOFFORMULA'
+          class KenerCtl < Formula
+            desc "Declarative CLI for Kener status pages"
+            homepage "https://github.com/supporterino/kener-ctl"
+            version "VERSION_PLACEHOLDER"
+            license "GPL-3.0-only"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/supporterino/kener-ctl/releases/download/v#{version}/kener-ctl-darwin-arm64"
+                sha256 "ARM64_PLACEHOLDER"
+              else
+                url "https://github.com/supporterino/kener-ctl/releases/download/v#{version}/kener-ctl-darwin-x64"
+                sha256 "X64_PLACEHOLDER"
+              end
+            end
+
+            def install
+              bin.install Dir["kener-ctl-*"].first => "kener-ctl"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/kener-ctl --version")
+            end
+          end
+          ENDOFFORMULA
+
+          sed -i "s/VERSION_PLACEHOLDER/${VERSION}/g" tap-repo/Formula/kener-ctl.rb
+          sed -i "s/ARM64_PLACEHOLDER/${ARM64_SHA}/g" tap-repo/Formula/kener-ctl.rb
+          sed -i "s/X64_PLACEHOLDER/${X64_SHA}/g" tap-repo/Formula/kener-ctl.rb
+
+          cd tap-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/kener-ctl.rb
+          git commit -m "chore: bump to v${VERSION}" || echo "No changes to commit"
+          git push origin main
+
