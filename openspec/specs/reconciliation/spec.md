@@ -56,7 +56,7 @@ The system SHALL use `metadata.tag` as the stable key for matching Monitor manif
 - **THEN** the reconciler executes a PATCH to reactivate it (set `status: "ACTIVE"` and update other fields) instead of attempting a POST create
 
 ### Requirement: Reconcile Pages by path
-The system SHALL use `metadata.path` as the stable key for matching Page manifests to remote pages. The root page SHALL have path `""` (empty string), not `"~home"`.
+The system SHALL use `metadata.path` as the stable key for matching Page manifests to remote pages. The root page SHALL have path `""` (empty string), not `"~home"`. When constructing POST or PATCH request bodies for pages, the `monitors` field SHALL be sent as a plain array of monitor tag strings (`string[]`), not as objects with `monitor_tag` and `position`.
 
 #### Scenario: Page matched by path
 - **WHEN** a manifest has `metadata.path: services` and a remote page exists with `page_path: services`
@@ -65,6 +65,10 @@ The system SHALL use `metadata.path` as the stable key for matching Page manifes
 #### Scenario: Root page matched by empty path
 - **WHEN** a manifest has `metadata.path: ""` and the remote has a page at `page_path: ""`
 - **THEN** they are matched as the same resource
+
+#### Scenario: Page monitors sent as string array
+- **WHEN** a manifest declares a page with `spec.monitors: ["api-v1", "db-check"]`
+- **THEN** the create or update request body SHALL include `"monitors": ["api-v1", "db-check"]`
 
 ### Requirement: Reconcile Incidents via state identity file
 The system SHALL use `metadata.name` as the stable local key for Incidents, looking up the remote integer ID from the state file at `~/.config/kener-ctl/state/<context-name>.json`. Incident `start_date_time` SHALL be stored and compared as Unix timestamps (number). The `state` field SHALL NOT be included in diff comparisons (it is immutable via REST API). Incident `monitors` SHALL use the `[{ monitor_tag, impact }]` format.
