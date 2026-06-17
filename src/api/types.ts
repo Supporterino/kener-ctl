@@ -3,8 +3,11 @@ import { z } from "zod"
 // ─── Monitor ───────────────────────────────────────────────────────────────
 
 const StringOrBool = z.preprocess((v) => {
-  if (v === "true") return true
-  if (v === "false") return false
+  if (typeof v === "string") {
+    const lower = v.toLowerCase()
+    if (lower === "true" || lower === "yes" || lower === "1") return true
+    if (lower === "false" || lower === "no" || lower === "0") return false
+  }
   return v
 }, z.boolean())
 
@@ -49,8 +52,8 @@ export const CreateMonitorBodySchema = z.object({
   type_data: z.record(z.unknown()).optional(),
   day_degraded_minimum_count: z.number().optional(),
   day_down_minimum_count: z.number().optional(),
-  include_degraded_in_downtime: z.boolean().optional(),
-  is_hidden: z.boolean().optional(),
+  include_degraded_in_downtime: StringOrBool.optional(),
+  is_hidden: StringOrBool.optional(),
 })
 
 export const UpdateMonitorBodySchema = CreateMonitorBodySchema.partial().extend({
