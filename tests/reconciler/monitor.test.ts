@@ -115,6 +115,20 @@ describe("reconcileMonitors", () => {
     expect(changes.every((c) => c.action === "CREATE")).toBe(true)
   })
 
+  it("handles null remote fields without crashing", async () => {
+    const remoteMonitor = makeMonitor("my-api", {
+      description: null as unknown as string,
+      category_name: null as unknown as string,
+      day_degraded_minimum_count: null as unknown as number,
+      day_down_minimum_count: null as unknown as number,
+    })
+    const api = mockMonitorsApi([remoteMonitor])
+    const manifests = [makeManifest("my-api")]
+    const changes = await reconcileMonitors(api, manifests)
+    expect(changes).toHaveLength(1)
+    expect(changes[0]?.action).toBe("UPDATE")
+  })
+
   it("handles mix of CREATE, UPDATE, DELETE", async () => {
     const api = mockMonitorsApi([
       makeMonitor("exists", { name: "Exists" }),

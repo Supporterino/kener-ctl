@@ -6,10 +6,18 @@ const mockMonitor = {
   tag: "my-api",
   name: "My API",
   description: "API health check",
+  image: null,
   monitor_type: "API",
   cron: "* * * * *",
   default_status: "DOWN",
   status: "ACTIVE",
+  category_name: null,
+  day_degraded_minimum_count: null,
+  day_down_minimum_count: null,
+  include_degraded_in_downtime: "true",
+  is_hidden: "false",
+  monitor_settings_json: null,
+  external_url: null,
   created_at: "2025-01-01T00:00:00.000Z",
   updated_at: "2025-01-02T00:00:00.000Z",
 }
@@ -128,6 +136,70 @@ describe("monitorsApi", () => {
         default_status: "DOWN",
       }),
     ).rejects.toThrow("400")
+  })
+
+  it("list parses monitors with null optional fields, string booleans, and object settings", async () => {
+    const monitorWithNulls = {
+      tag: "test-tag",
+      name: "Test Monitor",
+      description: null,
+      image: null,
+      cron: "* * * * *",
+      default_status: "DOWN",
+      status: "ACTIVE",
+      category_name: null,
+      monitor_type: "API",
+      day_degraded_minimum_count: null,
+      day_down_minimum_count: null,
+      include_degraded_in_downtime: "true",
+      is_hidden: "false",
+      monitor_settings_json: { polling_interval: 30 },
+      external_url: null,
+      created_at: "2025-01-01T00:00:00.000Z",
+      updated_at: "2025-01-02T00:00:00.000Z",
+    }
+    const client = createMockKy({ monitors: [monitorWithNulls] })
+    const api = createMonitorsApi(client)
+    const result = await api.list()
+    expect(result).toHaveLength(1)
+    expect(result[0]?.tag).toBe("test-tag")
+    expect(result[0]?.description).toBeNull()
+    expect(result[0]?.image).toBeNull()
+    expect(result[0]?.category_name).toBeNull()
+    expect(result[0]?.day_degraded_minimum_count).toBeNull()
+    expect(result[0]?.day_down_minimum_count).toBeNull()
+    expect(result[0]?.include_degraded_in_downtime).toBe(true)
+    expect(result[0]?.is_hidden).toBe(false)
+    expect(result[0]?.monitor_settings_json).toEqual({ polling_interval: 30 })
+    expect(result[0]?.external_url).toBeNull()
+  })
+
+  it("get parses singleton monitor with nullable fields", async () => {
+    const monitorWithNulls = {
+      tag: "singleton-tag",
+      name: "Singleton",
+      description: null,
+      image: null,
+      cron: "*/10 * * * *",
+      default_status: "UP",
+      status: "ACTIVE",
+      category_name: null,
+      monitor_type: "PING",
+      day_degraded_minimum_count: null,
+      day_down_minimum_count: null,
+      include_degraded_in_downtime: "true",
+      is_hidden: "false",
+      monitor_settings_json: null,
+      external_url: null,
+      created_at: "2025-01-01T00:00:00.000Z",
+      updated_at: "2025-01-02T00:00:00.000Z",
+    }
+    const client = createMockKy({ monitor: monitorWithNulls })
+    const api = createMonitorsApi(client)
+    const result = await api.get("singleton-tag")
+    expect(result.tag).toBe("singleton-tag")
+    expect(result.monitor_settings_json).toBeNull()
+    expect(result.include_degraded_in_downtime).toBe(true)
   })
 
   it("handles 401 auth error", async () => {
