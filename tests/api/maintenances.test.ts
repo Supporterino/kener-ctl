@@ -5,20 +5,25 @@ import { createMaintenancesApi } from "@/api/maintenances"
 const mockMaintenance = {
   id: 1,
   title: "Scheduled DB Migration",
-  monitors: ["my-db"],
-  startDatetime: "2025-06-16T00:00:00.000Z",
-  endDatetime: "2025-06-16T02:00:00.000Z",
-  createdAt: "2025-01-01T00:00:00.000Z",
-  updatedAt: "2025-01-02T00:00:00.000Z",
+  description: "",
+  start_date_time: 1765468800,
+  rrule: "FREQ=WEEKLY;BYDAY=MO",
+  duration_seconds: 7200,
+  status: "SCHEDULED",
+  monitors: [{ monitor_tag: "my-db", impact: "DOWN" as const }],
+  created_at: "2025-01-01T00:00:00.000Z",
+  updated_at: "2025-01-02T00:00:00.000Z",
 }
 
 const mockMaintenance2 = {
   id: 2,
   title: "Network Upgrade",
-  monitors: [],
-  startDatetime: "2025-06-17T00:00:00.000Z",
-  endDatetime: "2025-06-17T04:00:00.000Z",
+  description: "",
+  start_date_time: 1765555200,
   rrule: "FREQ=WEEKLY",
+  duration_seconds: 14400,
+  status: "SCHEDULED",
+  monitors: [],
 }
 
 function createMockKy(
@@ -66,7 +71,7 @@ function createMockKy(
 
 describe("maintenancesApi", () => {
   it("list returns all maintenances", async () => {
-    const client = createMockKy([mockMaintenance, mockMaintenance2])
+    const client = createMockKy({ maintenances: [mockMaintenance, mockMaintenance2] })
     const api = createMaintenancesApi(client)
     const result = await api.list()
     expect(result).toHaveLength(2)
@@ -75,26 +80,28 @@ describe("maintenancesApi", () => {
   })
 
   it("get returns single maintenance", async () => {
-    const client = createMockKy(mockMaintenance)
+    const client = createMockKy({ maintenance: mockMaintenance })
     const api = createMaintenancesApi(client)
     const result = await api.get(1)
     expect(result.id).toBe(1)
     expect(result.title).toBe("Scheduled DB Migration")
   })
 
-  it("create sends POST with body", async () => {
-    const client = createMockKy(mockMaintenance)
+  it("create sends POST with rrule and duration_seconds", async () => {
+    const client = createMockKy({ maintenance: mockMaintenance })
     const api = createMaintenancesApi(client)
     const result = await api.create({
       title: "Scheduled DB Migration",
-      startDatetime: "2025-06-16T00:00:00.000Z",
-      endDatetime: "2025-06-16T02:00:00.000Z",
+      start_date_time: 1765468800,
+      rrule: "FREQ=WEEKLY;BYDAY=MO",
+      duration_seconds: 7200,
     })
     expect(result.title).toBe("Scheduled DB Migration")
+    expect(result.rrule).toBe("FREQ=WEEKLY;BYDAY=MO")
   })
 
   it("update sends PATCH with body", async () => {
-    const client = createMockKy(mockMaintenance)
+    const client = createMockKy({ maintenance: mockMaintenance })
     const api = createMaintenancesApi(client)
     const result = await api.update(1, { title: "Updated Title" })
     expect(result.title).toBe("Scheduled DB Migration")
@@ -118,8 +125,9 @@ describe("maintenancesApi", () => {
     await expect(
       api.create({
         title: "",
-        startDatetime: "2025-06-16T00:00:00.000Z",
-        endDatetime: "2025-06-16T02:00:00.000Z",
+        start_date_time: 0,
+        rrule: "",
+        duration_seconds: 0,
       }),
     ).rejects.toThrow("400")
   })

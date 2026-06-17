@@ -1,6 +1,0 @@
-kind: AlertTrigger
-metadata:
-  name: ops-discord
-spec:
-  type: DISCORD
-  discordChannelId: "CHANGEME"

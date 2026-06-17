@@ -1,9 +1,9 @@
 import type { MaintenancesApi } from "@/api/maintenances"
 import type { Maintenance } from "@/api/types"
 import type { MaintenanceManifest } from "@/manifest/types"
+import type { StateFile } from "../../reconciler/engine"
 import type { Change } from "../diff"
 import { diff, stripServerFields } from "../diff"
-import type { StateFile } from "./alert-config"
 
 export async function reconcileMaintenances(
   api: MaintenancesApi,
@@ -46,13 +46,17 @@ function findNameById(stateMap: Record<string, number>, id: number): string | un
 
 function maintenanceFromApi(m: Maintenance): Record<string, unknown> {
   return {
-    title: m.title,
-    monitors: m.monitors,
-    startDatetime: m.startDatetime,
-    endDatetime: m.endDatetime,
-    rrule: m.rrule,
+    kind: "Maintenance",
+    metadata: {},
+    spec: {
+      title: m.title,
+      monitors: m.monitors.map((mon) => mon.monitor_tag),
+      startDatetime: m.start_date_time,
+      rrule: m.rrule,
+      durationSeconds: m.duration_seconds,
+    },
     id: m.id,
-    createdAt: m.createdAt,
-    updatedAt: m.updatedAt,
+    created_at: m.created_at,
+    updated_at: m.updated_at,
   }
 }

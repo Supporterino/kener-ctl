@@ -3,14 +3,7 @@ metadata:
   name: ssl-expiry-monitoring
 spec:
   title: SSL Certificate Nearing Expiry
-  state: MONITORING
+  startDatetime: 1765468800
   affectedMonitors:
     - tag: ssl-example
       impact: DEGRADED
-  updates:
-    - message: "Automated check detected the SSL certificate for example.com will expire in 7 days."
-      state: INVESTIGATING
-    - message: "Identified the certificate renewal process. Ops team has requested a new certificate from the CA."
-      state: IDENTIFIED
-    - message: "New certificate has been issued and deployed to all load balancers. Monitoring propagation across CDN edges."
-      state: MONITORING

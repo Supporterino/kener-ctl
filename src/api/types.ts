@@ -3,62 +3,53 @@ import { z } from "zod"
 // ─── Monitor ───────────────────────────────────────────────────────────────
 
 export const MonitorSchema = z.object({
-  id: z.number(),
   tag: z.string(),
   name: z.string(),
   description: z.string().default(""),
-  type: z.enum([
-    "API",
-    "PING",
-    "TCP",
-    "DNS",
-    "SSL",
-    "SQL",
-    "HEARTBEAT",
-    "GAMEDIG",
-    "GRPC",
-    "GROUP",
-  ]),
-  categoryName: z.string().optional(),
-  cronSchedule: z.string(),
-  defaultStatus: z.enum(["UP", "DOWN", "DEGRADED"]),
-  gracePeriod: z.number().optional(),
-  dayDegradedMinCount: z.number().optional(),
-  dayDownMinCount: z.number().optional(),
-  typeData: z.record(z.unknown()).optional(),
-  createdAt: z.string().datetime({ offset: true }).optional(),
-  updatedAt: z.string().datetime({ offset: true }).optional(),
+  image: z.string().default(""),
+  cron: z.string().default("* * * * *"),
+  default_status: z.string().default("DOWN"),
+  status: z.string().default("ACTIVE"),
+  category_name: z.string().optional(),
+  monitor_type: z.string(),
+  type_data: z.record(z.unknown()).optional(),
+  day_degraded_minimum_count: z.number().optional(),
+  day_down_minimum_count: z.number().optional(),
+  include_degraded_in_downtime: z.boolean().default(false),
+  is_hidden: z.boolean().default(false),
+  monitor_settings_json: z.string().optional(),
+  external_url: z.string().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
 })
 
-export const MonitorListResponseSchema = z.array(MonitorSchema)
-export const MonitorResponseSchema = MonitorSchema
+export const MonitorListResponseSchema = z.object({
+  monitors: z.array(MonitorSchema),
+})
+
+export const MonitorResponseSchema = z.object({
+  monitor: MonitorSchema,
+})
 
 export const CreateMonitorBodySchema = z.object({
   tag: z.string().min(1),
   name: z.string().min(1),
+  cron: z.string().default("* * * * *"),
+  default_status: z.string().default("DOWN"),
+  monitor_type: z.string(),
   description: z.string().optional(),
-  type: z.enum([
-    "API",
-    "PING",
-    "TCP",
-    "DNS",
-    "SSL",
-    "SQL",
-    "HEARTBEAT",
-    "GAMEDIG",
-    "GRPC",
-    "GROUP",
-  ]),
-  categoryName: z.string().optional(),
-  cronSchedule: z.string().optional(),
-  defaultStatus: z.enum(["UP", "DOWN", "DEGRADED"]).optional(),
-  gracePeriod: z.number().optional(),
-  dayDegradedMinCount: z.number().optional(),
-  dayDownMinCount: z.number().optional(),
-  typeData: z.record(z.unknown()).optional(),
+  image: z.string().optional(),
+  category_name: z.string().optional(),
+  type_data: z.record(z.unknown()).optional(),
+  day_degraded_minimum_count: z.number().optional(),
+  day_down_minimum_count: z.number().optional(),
+  include_degraded_in_downtime: z.boolean().optional(),
+  is_hidden: z.boolean().optional(),
 })
 
-export const UpdateMonitorBodySchema = CreateMonitorBodySchema.partial()
+export const UpdateMonitorBodySchema = CreateMonitorBodySchema.partial().extend({
+  status: z.string().optional(),
+})
 
 export type Monitor = z.infer<typeof MonitorSchema>
 export type CreateMonitorBody = z.infer<typeof CreateMonitorBodySchema>
@@ -68,49 +59,46 @@ export type UpdateMonitorBody = z.infer<typeof UpdateMonitorBodySchema>
 
 export const PageSchema = z.object({
   id: z.number(),
-  path: z.string(),
-  title: z.string(),
-  header: z.string().default(""),
-  pageContent: z.string().default(""),
-  monitors: z.array(z.unknown()).default([]),
-  display: z
-    .object({
-      desktopDays: z.number(),
-      mobileDays: z.number(),
-      layout: z.enum(["default-list", "default-grid", "compact-list", "compact-grid"]),
-    })
-    .optional(),
-  seo: z
-    .object({
-      metaTitle: z.string().optional(),
-      metaDescription: z.string().optional(),
-    })
-    .optional(),
-  createdAt: z.string().datetime({ offset: true }).optional(),
-  updatedAt: z.string().datetime({ offset: true }).optional(),
+  page_path: z.string(),
+  page_title: z.string(),
+  page_header: z.string().default(""),
+  page_subheader: z.string().default(""),
+  page_logo: z.string().default(""),
+  page_settings: z.record(z.unknown()).default({}),
+  monitors: z
+    .array(
+      z.object({
+        monitor_tag: z.string(),
+        position: z.number(),
+      }),
+    )
+    .default([]),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
 })
 
-export const PageListResponseSchema = z.array(PageSchema)
-export const PageResponseSchema = PageSchema
+export const PageListResponseSchema = z.object({
+  pages: z.array(PageSchema),
+})
+
+export const PageResponseSchema = z.object({
+  page: PageSchema,
+})
 
 export const CreatePageBodySchema = z.object({
-  path: z.string().min(1),
-  title: z.string().min(1),
-  header: z.string().optional(),
-  pageContent: z.string().optional(),
-  monitors: z.array(z.string()).optional(),
-  display: z
-    .object({
-      desktopDays: z.number(),
-      mobileDays: z.number(),
-      layout: z.enum(["default-list", "default-grid", "compact-list", "compact-grid"]),
-    })
-    .optional(),
-  seo: z
-    .object({
-      metaTitle: z.string().optional(),
-      metaDescription: z.string().optional(),
-    })
+  page_path: z.string(),
+  page_title: z.string().min(1),
+  page_header: z.string().optional(),
+  page_subheader: z.string().optional(),
+  page_logo: z.string().optional(),
+  page_settings: z.record(z.unknown()).optional(),
+  monitors: z
+    .array(
+      z.object({
+        monitor_tag: z.string(),
+        position: z.number(),
+      }),
+    )
     .optional(),
 })
 
@@ -120,122 +108,43 @@ export type Page = z.infer<typeof PageSchema>
 export type CreatePageBody = z.infer<typeof CreatePageBodySchema>
 export type UpdatePageBody = z.infer<typeof UpdatePageBodySchema>
 
-// ─── AlertTrigger ───────────────────────────────────────────────────────────
-
-export const AlertTriggerSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  type: z.enum(["WEBHOOK", "DISCORD", "SLACK", "EMAIL"]),
-  webhookUrl: z.string().optional(),
-  emailAddresses: z.array(z.string()).optional(),
-  discordChannelId: z.string().optional(),
-  createdAt: z.string().datetime({ offset: true }).optional(),
-  updatedAt: z.string().datetime({ offset: true }).optional(),
-})
-
-export const AlertTriggerListResponseSchema = z.array(AlertTriggerSchema)
-export const AlertTriggerResponseSchema = AlertTriggerSchema
-
-export const CreateAlertTriggerBodySchema = z.object({
-  name: z.string().min(1),
-  type: z.enum(["WEBHOOK", "DISCORD", "SLACK", "EMAIL"]),
-  webhookUrl: z.string().optional(),
-  emailAddresses: z.array(z.string()).optional(),
-  discordChannelId: z.string().optional(),
-})
-
-export const UpdateAlertTriggerBodySchema = CreateAlertTriggerBodySchema.partial()
-
-export type AlertTrigger = z.infer<typeof AlertTriggerSchema>
-export type CreateAlertTriggerBody = z.infer<typeof CreateAlertTriggerBodySchema>
-export type UpdateAlertTriggerBody = z.infer<typeof UpdateAlertTriggerBodySchema>
-
-// ─── AlertConfig ────────────────────────────────────────────────────────────
-
-export const AlertConfigSchema = z.object({
-  id: z.number(),
-  monitorTag: z.string(),
-  alertType: z.enum(["STATUS", "LATENCY", "UPTIME"]),
-  alertValue: z.string(),
-  failureThreshold: z.number(),
-  successThreshold: z.number(),
-  severity: z.enum(["CRITICAL", "WARNING"]),
-  createIncident: z.boolean(),
-  triggers: z.array(z.unknown()).optional(),
-  createdAt: z.string().datetime({ offset: true }).optional(),
-  updatedAt: z.string().datetime({ offset: true }).optional(),
-})
-
-export const AlertConfigListResponseSchema = z.array(AlertConfigSchema)
-export const AlertConfigResponseSchema = AlertConfigSchema
-
-export const CreateAlertConfigBodySchema = z.object({
-  monitorTag: z.string().min(1),
-  alertType: z.enum(["STATUS", "LATENCY", "UPTIME"]),
-  alertValue: z.string(),
-  failureThreshold: z.number().optional(),
-  successThreshold: z.number().optional(),
-  severity: z.enum(["CRITICAL", "WARNING"]).optional(),
-  createIncident: z.boolean().optional(),
-  triggerIds: z.array(z.number()).optional(),
-})
-
-export const UpdateAlertConfigBodySchema = CreateAlertConfigBodySchema.partial()
-
-export type AlertConfig = z.infer<typeof AlertConfigSchema>
-export type CreateAlertConfigBody = z.infer<typeof CreateAlertConfigBodySchema>
-export type UpdateAlertConfigBody = z.infer<typeof UpdateAlertConfigBodySchema>
-
 // ─── Incident ───────────────────────────────────────────────────────────────
+
+export const IncidentMonitorRefSchema = z.object({
+  monitor_tag: z.string(),
+  impact: z.enum(["DOWN", "DEGRADED"]),
+})
 
 export const IncidentSchema = z.object({
   id: z.number(),
   title: z.string(),
-  state: z.enum(["INVESTIGATING", "IDENTIFIED", "MONITORING", "RESOLVED"]),
-  affectedMonitors: z
-    .array(
-      z.object({
-        tag: z.string(),
-        impact: z.enum(["DOWN", "DEGRADED"]),
-      }),
-    )
-    .default([]),
-  updates: z
-    .array(
-      z.object({
-        message: z.string(),
-        state: z.enum(["INVESTIGATING", "IDENTIFIED", "MONITORING", "RESOLVED"]),
-      }),
-    )
-    .default([]),
-  createdAt: z.string().datetime({ offset: true }).optional(),
-  updatedAt: z.string().datetime({ offset: true }).optional(),
+  start_date_time: z.number(),
+  end_date_time: z.number().nullable(),
+  state: z.string(),
+  incident_type: z.string().optional(),
+  incident_source: z.string().optional(),
+  monitors: z.array(IncidentMonitorRefSchema).default([]),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
 })
 
-export const IncidentListResponseSchema = z.array(IncidentSchema)
-export const IncidentResponseSchema = IncidentSchema
+export const IncidentListResponseSchema = z.object({
+  incidents: z.array(IncidentSchema),
+})
+
+export const IncidentResponseSchema = z.object({
+  incident: IncidentSchema,
+})
 
 export const CreateIncidentBodySchema = z.object({
   title: z.string().min(1),
-  state: z.enum(["INVESTIGATING", "IDENTIFIED", "MONITORING", "RESOLVED"]).optional(),
-  affectedMonitors: z
-    .array(
-      z.object({
-        tag: z.string(),
-        impact: z.enum(["DOWN", "DEGRADED"]),
-      }),
-    )
-    .optional(),
+  start_date_time: z.number(),
+  monitors: z.array(IncidentMonitorRefSchema).optional(),
 })
 
-export const UpdateIncidentBodySchema = CreateIncidentBodySchema.extend({
-  update: z
-    .object({
-      message: z.string().min(1),
-      state: z.enum(["INVESTIGATING", "IDENTIFIED", "MONITORING", "RESOLVED"]),
-    })
-    .optional(),
-}).partial()
+export const UpdateIncidentBodySchema = CreateIncidentBodySchema.partial().extend({
+  end_date_time: z.number().optional(),
+})
 
 export type Incident = z.infer<typeof IncidentSchema>
 export type CreateIncidentBody = z.infer<typeof CreateIncidentBodySchema>
@@ -243,26 +152,38 @@ export type UpdateIncidentBody = z.infer<typeof UpdateIncidentBodySchema>
 
 // ─── Maintenance ────────────────────────────────────────────────────────────
 
+export const MaintenanceMonitorRefSchema = z.object({
+  monitor_tag: z.string(),
+  impact: z.enum(["DOWN", "DEGRADED"]),
+})
+
 export const MaintenanceSchema = z.object({
   id: z.number(),
   title: z.string(),
-  monitors: z.array(z.unknown()).default([]),
-  startDatetime: z.string().datetime({ offset: true }),
-  endDatetime: z.string().datetime({ offset: true }),
-  rrule: z.string().optional(),
-  createdAt: z.string().datetime({ offset: true }).optional(),
-  updatedAt: z.string().datetime({ offset: true }).optional(),
+  description: z.string().default(""),
+  start_date_time: z.number(),
+  rrule: z.string(),
+  duration_seconds: z.number(),
+  status: z.string(),
+  monitors: z.array(MaintenanceMonitorRefSchema).default([]),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
 })
 
-export const MaintenanceListResponseSchema = z.array(MaintenanceSchema)
-export const MaintenanceResponseSchema = MaintenanceSchema
+export const MaintenanceListResponseSchema = z.object({
+  maintenances: z.array(MaintenanceSchema),
+})
+
+export const MaintenanceResponseSchema = z.object({
+  maintenance: MaintenanceSchema,
+})
 
 export const CreateMaintenanceBodySchema = z.object({
   title: z.string().min(1),
-  monitors: z.array(z.string()).optional(),
-  startDatetime: z.string().datetime({ offset: true }),
-  endDatetime: z.string().datetime({ offset: true }),
-  rrule: z.string().optional(),
+  start_date_time: z.number(),
+  rrule: z.string(),
+  duration_seconds: z.number(),
+  monitors: z.array(MaintenanceMonitorRefSchema).optional(),
 })
 
 export const UpdateMaintenanceBodySchema = CreateMaintenanceBodySchema.partial()

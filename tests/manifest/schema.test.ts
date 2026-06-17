@@ -1,7 +1,5 @@
 import { describe, expect, it } from "bun:test"
 import {
-  AlertConfigManifestSchema,
-  AlertTriggerManifestSchema,
   AnyManifestSchema,
   IncidentManifestSchema,
   MaintenanceManifestSchema,
@@ -112,6 +110,18 @@ describe("MonitorManifestSchema", () => {
     expect(result.success).toBe(true)
   })
 
+  it("accepts NONE monitor type", () => {
+    const result = MonitorManifestSchema.safeParse({
+      kind: "Monitor",
+      metadata: { tag: "info" },
+      spec: {
+        name: "Info Panel",
+        type: "NONE",
+      },
+    })
+    expect(result.success).toBe(true)
+  })
+
   it("applies defaults for optional spec fields", () => {
     const result = MonitorManifestSchema.safeParse(validMonitor)
     expect(result.success).toBe(true)
@@ -137,10 +147,10 @@ describe("PageManifestSchema", () => {
     expect(result.success).toBe(true)
   })
 
-  it("accepts home page with ~home path", () => {
+  it("accepts root page with empty path", () => {
     const result = PageManifestSchema.safeParse({
       kind: "Page",
-      metadata: { path: "~home" },
+      metadata: { path: "" },
       spec: { title: "Home" },
     })
     expect(result.success).toBe(true)
@@ -162,113 +172,6 @@ describe("PageManifestSchema", () => {
     })
     expect(result.success).toBe(false)
   })
-
-  it("rejects empty metadata.path", () => {
-    const result = PageManifestSchema.safeParse({
-      kind: "Page",
-      metadata: { path: "" },
-      spec: { title: "Title" },
-    })
-    expect(result.success).toBe(false)
-  })
-})
-
-// ─── AlertTrigger ───────────────────────────────────────────────────────────
-
-describe("AlertTriggerManifestSchema", () => {
-  const validTrigger = {
-    kind: "AlertTrigger" as const,
-    metadata: { name: "ops-slack" },
-    spec: {
-      type: "SLACK" as const,
-      webhookUrl: "https://hooks.slack.com/services/...",
-    },
-  }
-
-  it("accepts valid trigger", () => {
-    const result = AlertTriggerManifestSchema.safeParse(validTrigger)
-    expect(result.success).toBe(true)
-  })
-
-  it("accepts WEBHOOK trigger", () => {
-    const result = AlertTriggerManifestSchema.safeParse({
-      kind: "AlertTrigger",
-      metadata: { name: "custom" },
-      spec: { type: "WEBHOOK", webhookUrl: "https://example.com/hook" },
-    })
-    expect(result.success).toBe(true)
-  })
-
-  it("accepts DISCORD trigger", () => {
-    const result = AlertTriggerManifestSchema.safeParse({
-      kind: "AlertTrigger",
-      metadata: { name: "discord" },
-      spec: { type: "DISCORD", webhookUrl: "https://discord.com/webhook" },
-    })
-    expect(result.success).toBe(true)
-  })
-
-  it("accepts EMAIL trigger", () => {
-    const result = AlertTriggerManifestSchema.safeParse({
-      kind: "AlertTrigger",
-      metadata: { name: "email" },
-      spec: { type: "EMAIL", emailAddresses: ["admin@example.com"] },
-    })
-    expect(result.success).toBe(true)
-  })
-
-  it("rejects missing metadata.name", () => {
-    const result = AlertTriggerManifestSchema.safeParse({
-      kind: "AlertTrigger",
-      metadata: {},
-      spec: { type: "SLACK" },
-    })
-    expect(result.success).toBe(false)
-  })
-})
-
-// ─── AlertConfig ────────────────────────────────────────────────────────────
-
-describe("AlertConfigManifestSchema", () => {
-  const validConfig = {
-    kind: "AlertConfig" as const,
-    metadata: { name: "api-down-critical" },
-    spec: {
-      monitorTag: "my-api",
-      alertType: "STATUS" as const,
-      alertValue: "DOWN",
-    },
-  }
-
-  it("accepts valid config", () => {
-    const result = AlertConfigManifestSchema.safeParse(validConfig)
-    expect(result.success).toBe(true)
-  })
-
-  it("accepts config with triggers", () => {
-    const result = AlertConfigManifestSchema.safeParse({
-      ...validConfig,
-      spec: { ...validConfig.spec, triggerNames: ["ops-slack"] },
-    })
-    expect(result.success).toBe(true)
-  })
-
-  it("defaults severity to WARNING", () => {
-    const result = AlertConfigManifestSchema.safeParse(validConfig)
-    expect(result.success).toBe(true)
-    if (result.success) {
-      expect(result.data.spec.severity).toBe("WARNING")
-    }
-  })
-
-  it("rejects missing spec.monitorTag", () => {
-    const result = AlertConfigManifestSchema.safeParse({
-      kind: "AlertConfig",
-      metadata: { name: "test" },
-      spec: { alertType: "STATUS", alertValue: "DOWN" },
-    })
-    expect(result.success).toBe(false)
-  })
 })
 
 // ─── Incident ───────────────────────────────────────────────────────────────
@@ -279,7 +182,7 @@ describe("IncidentManifestSchema", () => {
     metadata: { name: "db-degraded-2024" },
     spec: {
       title: "Database Degraded",
-      state: "INVESTIGATING" as const,
+      startDatetime: 1765468800,
     },
   }
 
@@ -299,22 +202,20 @@ describe("IncidentManifestSchema", () => {
     expect(result.success).toBe(true)
   })
 
-  it("accepts incident with updates", () => {
+  it("rejects missing startDatetime", () => {
     const result = IncidentManifestSchema.safeParse({
-      ...validIncident,
-      spec: {
-        ...validIncident.spec,
-        updates: [{ message: "Investigating", state: "INVESTIGATING" as const }],
-      },
+      kind: "Incident",
+      metadata: { name: "test" },
+      spec: { title: "Test" },
     })
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(false)
   })
 
   it("rejects missing spec.title", () => {
     const result = IncidentManifestSchema.safeParse({
       kind: "Incident",
       metadata: { name: "test" },
-      spec: { state: "INVESTIGATING" },
+      spec: { startDatetime: 1765468800 },
     })
     expect(result.success).toBe(false)
   })
@@ -328,8 +229,9 @@ describe("MaintenanceManifestSchema", () => {
     metadata: { name: "weekly-db" },
     spec: {
       title: "Weekly DB Maintenance",
-      startDatetime: "2025-07-01T02:00:00Z",
-      endDatetime: "2025-07-01T04:00:00Z",
+      startDatetime: 1765468800,
+      rrule: "FREQ=WEEKLY;BYDAY=TU",
+      durationSeconds: 7200,
     },
   }
 
@@ -338,20 +240,27 @@ describe("MaintenanceManifestSchema", () => {
     expect(result.success).toBe(true)
   })
 
-  it("accepts maintenance with rrule", () => {
+  it("rejects missing rrule", () => {
     const result = MaintenanceManifestSchema.safeParse({
-      ...validMaintenance,
-      spec: { ...validMaintenance.spec, rrule: "FREQ=WEEKLY;BYDAY=TU" },
+      kind: "Maintenance",
+      metadata: { name: "test" },
+      spec: {
+        title: "Test",
+        startDatetime: 1765468800,
+        durationSeconds: 3600,
+      },
     })
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(false)
   })
 
-  it("rejects invalid startDatetime format", () => {
+  it("rejects missing durationSeconds", () => {
     const result = MaintenanceManifestSchema.safeParse({
-      ...validMaintenance,
+      kind: "Maintenance",
+      metadata: { name: "test" },
       spec: {
-        ...validMaintenance.spec,
-        startDatetime: "not-a-date",
+        title: "Test",
+        startDatetime: 1765468800,
+        rrule: "FREQ=WEEKLY",
       },
     })
     expect(result.success).toBe(false)

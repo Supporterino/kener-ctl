@@ -1,6 +1,0 @@
-kind: AlertTrigger
-metadata:
-  name: ops-slack
-spec:
-  type: SLACK
-  webhookUrl: https://hooks.slack.com/services/CHANGEME

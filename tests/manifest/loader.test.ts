@@ -121,9 +121,9 @@ spec: {}`,
     expect(badErrors.length).toBeGreaterThanOrEqual(2)
   })
 
-  it("returns valid manifests alongside errors", () => {
+  it("rejects AlertTrigger manifests with descriptive error", () => {
     writeFile(
-      "good/valid.yaml",
+      "deprecated/trigger.yaml",
       `kind: AlertTrigger
 metadata:
   name: ops-slack
@@ -132,9 +132,26 @@ spec:
   webhookUrl: https://hooks.slack.com/test`,
     )
     const result = loadManifests(testDir)
-    const triggers = result.manifests.filter((m) => m.kind === "AlertTrigger")
-    expect(triggers.length).toBeGreaterThanOrEqual(1)
-    expect(result.errors.length).toBeGreaterThan(0)
+    const triggerErrors = result.errors.filter((e) => e.message.includes("AlertTrigger"))
+    expect(triggerErrors.length).toBeGreaterThanOrEqual(1)
+    expect(triggerErrors[0]?.message).toContain("not supported")
+  })
+
+  it("rejects AlertConfig manifests with descriptive error", () => {
+    writeFile(
+      "deprecated/config.yaml",
+      `kind: AlertConfig
+metadata:
+  name: test-config
+spec:
+  monitorTag: api
+  alertType: STATUS
+  alertValue: DOWN`,
+    )
+    const result = loadManifests(testDir)
+    const configErrors = result.errors.filter((e) => e.message.includes("AlertConfig"))
+    expect(configErrors.length).toBeGreaterThanOrEqual(1)
+    expect(configErrors[0]?.message).toContain("not supported")
   })
 
   it("skips empty/null documents", () => {
@@ -155,13 +172,7 @@ spec:
 })
 
 describe("validateManifests", () => {
-  it("returns valid=true for valid manifests", () => {
-    const result = validateManifests(testDir)
-    // We have valid manifests in the test dir
-    expect(result.valid).toBe(false) // because there are also invalid files
-  })
-
-  it("returns all errors", () => {
+  it("returns errors when invalid manifests exist", () => {
     const result = validateManifests(testDir)
     expect(result.errors.length).toBeGreaterThan(0)
   })

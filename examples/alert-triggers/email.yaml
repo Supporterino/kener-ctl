@@ -1,8 +1,0 @@
-kind: AlertTrigger
-metadata:
-  name: ops-email
-spec:
-  type: EMAIL
-  emailAddresses:
-    - ops@example.com
-    - oncall@example.com

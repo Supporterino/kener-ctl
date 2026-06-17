@@ -1,44 +1,4 @@
-# manifest-parsing
-
-## Purpose
-
-TBD
-
-## Requirements
-
-### Requirement: Discover manifest files recursively
-The system SHALL discover all `*.yaml` and `*.yml` files within `stateDir` using `Bun.Glob`, including nested subdirectories.
-
-#### Scenario: Flat directory structure
-- **WHEN** `stateDir` contains `monitors.yaml`, `pages.yaml`, and `alerts.yaml` directly
-- **THEN** all three files are discovered and processed
-
-#### Scenario: Nested directory structure
-- **WHEN** `stateDir` contains `monitors/api.yaml` and `monitors/db.yaml` in a subdirectory
-- **THEN** both files are discovered and processed
-
-#### Scenario: Mixed file extensions
-- **WHEN** `stateDir` contains `monitors.yaml` and `pages.yml`
-- **THEN** both files are discovered and processed
-
-#### Scenario: Empty state directory
-- **WHEN** `stateDir` exists but contains no YAML files
-- **THEN** the system proceeds with an empty manifest set (warns but does not error)
-
-### Requirement: Parse YAML documents
-The system SHALL parse each discovered file using `js-yaml`, handling both single documents and YAML document streams (multiple `---` separated documents in one file).
-
-#### Scenario: Single document per file
-- **WHEN** a file contains a single YAML document without `---` separator
-- **THEN** the document is parsed into a single manifest object
-
-#### Scenario: Multiple documents per file
-- **WHEN** a file contains multiple YAML documents separated by `---`
-- **THEN** each document is parsed as a separate manifest
-
-#### Scenario: YAML list (array at root)
-- **WHEN** a file contains a YAML array at the root level (list of resource objects)
-- **THEN** each array element is treated as a separate manifest
+## MODIFIED Requirements
 
 ### Requirement: Validate manifests against Zod schemas
 The system SHALL validate every parsed manifest document against the appropriate Zod schema, selected by the `kind` discriminator field. The system MUST support 4 resource kinds: Monitor, Page, Incident, and Maintenance. AlertTrigger and AlertConfig SHALL NOT be accepted.
@@ -89,19 +49,35 @@ The system SHALL continue parsing and validating all files even when some contai
 - **WHEN** 3 files are valid and 2 files have validation errors
 - **THEN** the 3 valid manifests are available for use; the 2 invalid files produce collected errors
 
-### Requirement: Support all Kener v4 Monitor types
-The system SHALL validate Monitor manifests for all observed Kener v4 monitor types: API, PING, TCP, DNS, SSL, SQL, HEARTBEAT, GAMEDIG, GRPC, GROUP, and NONE.
-
-#### Scenario: NONE monitor type
-- **WHEN** a Monitor has `type: NONE`
-- **THEN** validation passes (NONE is a valid Kener v4 monitor type for static/informational monitors)
-
 ### Requirement: Validate Page monitor references
 The system SHALL validate that Page manifest `spec.monitors` entries are string tags (not resolved to IDs at parse time).
 
 #### Scenario: Page with monitor tags
 - **WHEN** a Page manifest has `monitors: [my-api, db-primary]`
 - **THEN** validation passes; resolution to remote IDs happens during reconciliation, not parsing
+
+## REMOVED Requirements
+
+### Requirement: Validate AlertTrigger manifest
+**Reason**: AlertTrigger REST API endpoints do not exist in Kener v4. AlertTrigger manifests are rejected with a descriptive error.
+**Migration**: Remove `kind: AlertTrigger` from manifest files. The kind will be supported when Kener v4 exposes alert trigger endpoints.
+
+### Requirement: Validate AlertConfig manifest
+**Reason**: AlertConfig REST API endpoints do not exist in Kener v4. AlertConfig manifests are rejected with a descriptive error.
+**Migration**: Remove `kind: AlertConfig` from manifest files. The kind will be supported when Kener v4 exposes alert config endpoints.
+
+### Requirement: Support all 8 Monitor types
+**Reason**: Kener v4 uses `monitor_type` values that include `NONE` in addition to the expected types. This requirement is being replaced with a more complete enumeration.
+**Migration**: The new requirement below includes all observed monitor types from Kener v4.
+
+## ADDED Requirements
+
+### Requirement: Support all Kener v4 Monitor types
+The system SHALL validate Monitor manifests for all observed Kener v4 monitor types: API, PING, TCP, DNS, SSL, SQL, HEARTBEAT, GAMEDIG, GRPC, GROUP, and NONE.
+
+#### Scenario: NONE monitor type
+- **WHEN** a Monitor has `type: NONE`
+- **THEN** validation passes (NONE is a valid Kener v4 monitor type for static/informational monitors)
 
 ### Requirement: Validate Incident monitor references
 The system SHALL validate that Incident manifest `spec.affectedMonitors` entries have the correct shape: an array of objects with `tag` (string) and `impact` (DOWN or DEGRADED) fields.
@@ -127,7 +103,7 @@ The system SHALL validate that Maintenance manifests include `rrule` (an iCalend
 
 #### Scenario: Maintenance with endDatetime
 - **WHEN** a Maintenance manifest includes `endDatetime`
-- **THEN** validation fails indicating `endDatetime` is not supported (use `durationSeconds` instead)
+- **THEN** validation warns or fails indicating `endDatetime` is not supported (use `durationSeconds` instead)
 
 ### Requirement: Validate Page path format
 The system SHALL validate that Page manifest `metadata.path` is a string (can be empty for root page). Paths SHALL NOT start with a leading slash (the API strips them).

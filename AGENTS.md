@@ -25,6 +25,16 @@
 
 **Runtime target:** Kener v4 REST API (`/api/v4/…`).
 
+> **Discovered API conventions (verified against live Kener v4 instance):**
+> - All API responses use **snake_case** field names (e.g., `monitor_type`, `page_path`, `start_date_time`).
+> - Responses are **envelope-wrapped**: list endpoints return `{ "<plural>": [...] }`, single-resource endpoints return `{ "<singular>": {...} }`.
+> - Date fields (`created_at`, `updated_at`) are ISO 8601 strings.
+> - Incident/Maintenance timestamp fields (`start_date_time`, `end_date_time`) are **Unix timestamps (numbers)**.
+> - **4 supported resource kinds**: Monitor, Page, Incident, Maintenance.
+>   - AlertTrigger and AlertConfig endpoints **do not exist** in Kener v4 (return 404).
+> - **Monitors cannot be hard-deleted**: use PATCH `{ "status": "INACTIVE" }` for soft-deactivation.
+> - Pages are identified by `page_path` (empty string `""` for root page, no leading slash).
+
 ---
 
 ## 2. Project Structure
@@ -151,23 +161,19 @@ Once changes are complete, use the **`git-commit`** skill to:
 
 Apply in order; delete in reverse:
 
-1. AlertTriggers (no dependencies)
-2. Monitors
-3. Pages (reference monitor tags)
-4. AlertConfigs (reference monitors + triggers)
-5. Incidents (reference monitors)
-6. Maintenances (reference monitors)
+1. Monitors
+2. Pages (reference monitor tags)
+3. Incidents (reference monitors)
+4. Maintenances (reference monitors)
 
 ### Reconcile Key Mapping
 
 | Kind          | Local key          | Remote identifier                       |
 | ------------- | ------------------ | --------------------------------------- |
 | Monitor       | `metadata.tag`     | `tag` field                             |
-| Page          | `metadata.path`    | `path` field (`~home` for root)         |
-| AlertTrigger  | `metadata.name`    | `name` field                            |
-| AlertConfig   | `metadata.name`    | Composite or `name` (via state file)    |
-| Incident      | `metadata.name`    | `title` (via state file)                |
-| Maintenance   | `metadata.name`    | (via state file)                        |
+| Page          | `metadata.path`    | `path` field (`""` for root)            |
+| Incident      | `metadata.name`    | Numeric `id` (via state file)           |
+| Maintenance   | `metadata.name`    | Numeric `id` (via state file)           |
 
 ### Output & UX
 

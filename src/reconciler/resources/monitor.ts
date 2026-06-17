@@ -30,19 +30,23 @@ export async function reconcileMonitors(
 
 function manifestFromMonitor(monitor: Monitor): Record<string, unknown> {
   return {
-    tag: monitor.tag,
-    name: monitor.name,
-    description: monitor.description,
-    type: monitor.type,
-    categoryName: monitor.categoryName,
-    cronSchedule: monitor.cronSchedule,
-    defaultStatus: monitor.defaultStatus,
-    gracePeriod: monitor.gracePeriod,
-    dayDegradedMinCount: monitor.dayDegradedMinCount,
-    dayDownMinCount: monitor.dayDownMinCount,
-    typeData: monitor.typeData,
-    id: monitor.id,
-    createdAt: monitor.createdAt,
-    updatedAt: monitor.updatedAt,
+    kind: "Monitor",
+    metadata: {
+      tag: monitor.tag,
+    },
+    spec: {
+      name: monitor.name,
+      description: monitor.description,
+      type: monitor.monitor_type,
+      categoryName: monitor.category_name,
+      cronSchedule: monitor.cron,
+      defaultStatus: monitor.default_status,
+      gracePeriod: undefined,
+      dayDegradedMinCount: monitor.day_degraded_minimum_count,
+      dayDownMinCount: monitor.day_down_minimum_count,
+      typeData: monitor.type_data,
+    },
+    created_at: monitor.created_at,
+    updated_at: monitor.updated_at,
   }
 }

@@ -1,10 +1,4 @@
-# api-client
-
-## Purpose
-
-TBD
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Create authenticated HTTP client
 The system SHALL create a `ky` instance configured with the Kener instance base URL (appending `/api/v4`), bearer token authentication, JSON content type, and retry logic for transient errors.
@@ -147,6 +141,18 @@ The system SHALL detect network connectivity failures and authentication errors 
 #### Scenario: Invalid API key
 - **WHEN** the API returns 401 on the first request
 - **THEN** the error is printed immediately and the command exits with code 1
+
+## REMOVED Requirements
+
+### Requirement: Typed CRUD operations for AlertTriggers
+**Reason**: The `/api/v4/alert-triggers` endpoint does not exist in Kener v4 (returns 404).
+**Migration**: AlertTrigger support will be re-added when Kener v4 exposes a REST API for alert triggers. Remove any `kind: AlertTrigger` manifests from your state directory.
+
+### Requirement: Typed CRUD operations for AlertConfigs
+**Reason**: The `/api/v4/alert-configs` endpoint does not exist in Kener v4 (returns 404).
+**Migration**: AlertConfig support will be re-added when Kener v4 exposes a REST API for alert configs. Remove any `kind: AlertConfig` manifests from your state directory.
+
+## ADDED Requirements
 
 ### Requirement: Monitor soft-deactivation
 The system SHALL provide a `deactivate` method on the monitors API that sends a PATCH request with `{ "status": "INACTIVE" }` to the monitor's tag endpoint. Monitors cannot be hard-deleted via the REST API.

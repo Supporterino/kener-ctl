@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test"
 import type { IncidentsApi } from "@/api/incidents"
 import type { Incident } from "@/api/types"
 import type { IncidentManifest } from "@/manifest/types"
-import type { StateFile } from "@/reconciler/resources/alert-config"
+import type { StateFile } from "@/reconciler/engine"
 import { reconcileIncidents } from "@/reconciler/resources/incident"
 
 function mockIncidentsApi(incidents: Incident[]): IncidentsApi {
@@ -19,9 +19,12 @@ function makeIncident(id: number, title: string): Incident {
   return {
     id,
     title,
+    start_date_time: 1765468800,
+    end_date_time: null,
     state: "INVESTIGATING",
-    affectedMonitors: [],
-    updates: [],
+    monitors: [],
+    created_at: "2025-01-01T00:00:00.000Z",
+    updated_at: "2025-01-02T00:00:00.000Z",
   }
 }
 
@@ -34,9 +37,8 @@ function makeManifest(
     metadata: { name },
     spec: {
       title: name,
-      state: "INVESTIGATING" as const,
+      startDatetime: 1765468800,
       affectedMonitors: [],
-      updates: [],
       ...specOverrides,
     },
   }
@@ -56,6 +58,7 @@ describe("reconcileIncidents", () => {
     const stateFile: StateFile = {
       version: 1,
       incidents: { "outage-1": 1 },
+      maintenances: {},
     }
     const api = mockIncidentsApi([makeIncident(1, "API Down")])
     const manifests = [makeManifest("outage-1", { title: "API Down" })]
@@ -68,6 +71,7 @@ describe("reconcileIncidents", () => {
     const stateFile: StateFile = {
       version: 1,
       incidents: { "outage-1": 1 },
+      maintenances: {},
     }
     const api = mockIncidentsApi([makeIncident(1, "Old Title")])
     const manifests = [makeManifest("outage-1", { title: "New Title" })]
@@ -81,6 +85,7 @@ describe("reconcileIncidents", () => {
     const stateFile: StateFile = {
       version: 1,
       incidents: { "old-incident": 99 },
+      maintenances: {},
     }
     const api = mockIncidentsApi([makeIncident(99, "Old Incident")])
     const changes = await reconcileIncidents(api, [], stateFile, { deleteOrphans: true })

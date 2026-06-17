@@ -1,31 +1,31 @@
 import type { KyInstance } from "ky"
-import type { CreatePageBody, Page, UpdatePageBody } from "./types"
+import type { Page, CreatePageBody, UpdatePageBody } from "./types"
 import { PageListResponseSchema, PageResponseSchema } from "./types"
 
 export function createPagesApi(client: KyInstance) {
   return {
     list: async (): Promise<Page[]> => {
       const data = await client.get("pages").json()
-      return PageListResponseSchema.parse(data)
-    },
-
-    get: async (id: number): Promise<Page> => {
-      const data = await client.get(`pages/${id}`).json()
-      return PageResponseSchema.parse(data)
+      const parsed = PageListResponseSchema.parse(data)
+      return parsed.pages
     },
 
     create: async (body: CreatePageBody): Promise<Page> => {
       const data = await client.post("pages", { json: body }).json()
-      return PageResponseSchema.parse(data)
+      const parsed = PageResponseSchema.parse(data)
+      return parsed.page
     },
 
-    update: async (id: number, body: UpdatePageBody): Promise<Page> => {
-      const data = await client.patch(`pages/${id}`, { json: body }).json()
-      return PageResponseSchema.parse(data)
+    update: async (pagePath: string, body: UpdatePageBody): Promise<Page> => {
+      const data = await client
+        .patch(`pages/${encodeURIComponent(pagePath)}`, { json: body })
+        .json()
+      const parsed = PageResponseSchema.parse(data)
+      return parsed.page
     },
 
-    delete: async (id: number): Promise<void> => {
-      await client.delete(`pages/${id}`)
+    delete: async (pagePath: string): Promise<void> => {
+      await client.delete(`pages/${encodeURIComponent(pagePath)}`)
     },
   }
 }

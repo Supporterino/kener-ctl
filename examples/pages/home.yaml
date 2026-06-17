@@ -1,6 +1,6 @@
 kind: Page
 metadata:
-  path: "~home"
+  path: ""
 spec:
   title: Home
   header: "System Status"

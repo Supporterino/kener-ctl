@@ -1,18 +1,18 @@
 import chalk from "chalk"
 import { defineCommand } from "citty"
 import { consola } from "consola"
-import { createAlertConfigsApi } from "@/api/alert-configs"
 import { createKenerClient } from "@/api/client"
 import { createIncidentsApi } from "@/api/incidents"
 import { createMaintenancesApi } from "@/api/maintenances"
 import { createMonitorsApi } from "@/api/monitors"
 import { createPagesApi } from "@/api/pages"
-import { createTriggersApi } from "@/api/triggers"
 import { loadConfig } from "@/config/loader"
 import type { AnyManifest } from "@/manifest/types"
 import { printResourceDetails, printResourceList } from "@/output/printer"
 import { ConfigError, NetworkError } from "@/util/errors"
 import { contextArg, formatKind, isValidKind, outputArg } from "./shared"
+
+const VALID_KINDS = "monitors|pages|incidents|maintenances"
 
 export const getCommand = defineCommand({
   meta: {
@@ -23,12 +23,12 @@ export const getCommand = defineCommand({
     kind: {
       type: "positional" as const,
       description: "Resource kind to fetch",
-      valueHint: "monitors|pages|triggers|alert-configs|incidents|maintenances",
+      valueHint: VALID_KINDS,
       required: true,
     },
     id: {
       type: "positional" as const,
-      description: "Resource identifier (tag, path, name, or ID)",
+      description: "Resource identifier (tag, path, or numeric ID)",
       valueHint: "my-api",
     },
     context: contextArg,
@@ -40,13 +40,37 @@ export const getCommand = defineCommand({
         context: args.context,
       })
 
+      const lower = args.kind.toLowerCase()
+      if (
+        lower === "trigger" ||
+        lower === "triggers" ||
+        lower === "alerttrigger" ||
+        lower === "alerttriggers"
+      ) {
+        consola.error(
+          "AlertTrigger is not supported — this endpoint is not yet available in Kener v4.",
+        )
+        process.exit(1)
+      }
+      if (
+        lower === "alertconfig" ||
+        lower === "alertconfigs" ||
+        lower === "alert-config" ||
+        lower === "alert-configs"
+      ) {
+        consola.error(
+          "AlertConfig is not supported — this endpoint is not yet available in Kener v4.",
+        )
+        process.exit(1)
+      }
+
       const client = createKenerClient(config.instance, config.apiKey)
       const kind = formatKind(args.kind)
       const format = (args.output as "table" | "json" | "yaml") ?? "table"
 
       if (!isValidKind(kind)) {
         consola.error(
-          `Unknown resource kind: ${args.kind}. Valid kinds: Monitor, Page, AlertTrigger, AlertConfig, Incident, Maintenance`,
+          `Unknown resource kind: ${args.kind}. Valid kinds: Monitor, Page, Incident, Maintenance`,
         )
         process.exit(1)
       }
@@ -56,40 +80,14 @@ export const getCommand = defineCommand({
         switch (kind) {
           case "Monitor": {
             const api = createMonitorsApi(client)
-            if (!Number.isNaN(Number(args.id))) {
-              resource = await api.get(Number(args.id))
-            } else {
-              const all = await api.list()
-              resource = all.find((m) => m.tag === args.id)
-              if (!resource) throw new Error(`Monitor with tag "${args.id}" not found`)
-            }
+            resource = await api.get(args.id)
             break
           }
           case "Page": {
             const api = createPagesApi(client)
-            if (!Number.isNaN(Number(args.id))) {
-              resource = await api.get(Number(args.id))
-            } else {
-              const all = await api.list()
-              resource = all.find((p) => p.path === args.id)
-              if (!resource) throw new Error(`Page with path "${args.id}" not found`)
-            }
-            break
-          }
-          case "AlertTrigger": {
-            const api = createTriggersApi(client)
-            if (!Number.isNaN(Number(args.id))) {
-              resource = await api.get(Number(args.id))
-            } else {
-              const all = await api.list()
-              resource = all.find((t) => t.name === args.id)
-              if (!resource) throw new Error(`Trigger with name "${args.id}" not found`)
-            }
-            break
-          }
-          case "AlertConfig": {
-            const api = createAlertConfigsApi(client)
-            resource = await api.get(Number(args.id))
+            const all = await api.list()
+            resource = all.find((p) => p.page_path === args.id)
+            if (!resource) throw new Error(`Page with path "${args.id}" not found`)
             break
           }
           case "Incident": {
@@ -115,12 +113,6 @@ export const getCommand = defineCommand({
             break
           case "Page":
             resources = await createPagesApi(client).list()
-            break
-          case "AlertTrigger":
-            resources = await createTriggersApi(client).list()
-            break
-          case "AlertConfig":
-            resources = await createAlertConfigsApi(client).list()
             break
           case "Incident":
             resources = await createIncidentsApi(client).list()

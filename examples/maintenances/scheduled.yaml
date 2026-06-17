@@ -5,5 +5,6 @@ spec:
   title: API v2 Migration — Scheduled Downtime
   monitors:
     - api-example
-  startDatetime: "2026-08-01T02:00:00Z"
-  endDatetime: "2026-08-01T05:00:00Z"
+  startDatetime: 1765468800
+  rrule: "FREQ=ONCE"
+  durationSeconds: 10800

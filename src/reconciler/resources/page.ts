@@ -20,7 +20,7 @@ export async function reconcilePages(
 
   const actualMap = new Map<string, Record<string, unknown>>()
   for (const r of remote) {
-    const rPath = r.path === "~home" ? "~home" : r.path
+    const rPath = r.page_path
     if (
       filtered.some((p) => p.metadata.path === rPath) ||
       opts.deleteOrphans ||
@@ -37,15 +37,20 @@ export async function reconcilePages(
 
 function pageFromApi(page: Page): Record<string, unknown> {
   return {
-    path: page.path === "~home" ? "~home" : page.path,
-    title: page.title,
-    header: page.header,
-    pageContent: page.pageContent,
-    monitors: page.monitors,
-    display: page.display,
-    seo: page.seo,
+    kind: "Page",
+    metadata: {
+      path: page.page_path,
+    },
+    spec: {
+      title: page.page_title,
+      header: page.page_header,
+      pageContent: page.page_subheader,
+      monitors: page.monitors.map((m) => m.monitor_tag),
+      display: page.page_settings?.display,
+      seo: page.page_settings?.seo,
+    },
     id: page.id,
-    createdAt: page.createdAt,
-    updatedAt: page.updatedAt,
+    created_at: page.created_at,
+    updated_at: page.updated_at,
   }
 }

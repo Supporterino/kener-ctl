@@ -97,7 +97,7 @@ function computePatch(
 export function stripServerFields(obj: Record<string, unknown>): Record<string, unknown> {
   const cleaned = { ...obj }
   delete cleaned.id
-  delete cleaned.createdAt
-  delete cleaned.updatedAt
+  delete cleaned.created_at
+  delete cleaned.updated_at
   return cleaned
 }

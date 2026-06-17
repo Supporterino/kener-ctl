@@ -1,31 +1,39 @@
 import type { KyInstance } from "ky"
-import type { CreateMonitorBody, Monitor, UpdateMonitorBody } from "./types"
+import type { Monitor, CreateMonitorBody, UpdateMonitorBody } from "./types"
 import { MonitorListResponseSchema, MonitorResponseSchema } from "./types"
 
 export function createMonitorsApi(client: KyInstance) {
   return {
     list: async (): Promise<Monitor[]> => {
       const data = await client.get("monitors").json()
-      return MonitorListResponseSchema.parse(data)
+      const parsed = MonitorListResponseSchema.parse(data)
+      return parsed.monitors
     },
 
-    get: async (id: number): Promise<Monitor> => {
-      const data = await client.get(`monitors/${id}`).json()
-      return MonitorResponseSchema.parse(data)
+    get: async (tag: string): Promise<Monitor> => {
+      const data = await client.get(`monitors/${encodeURIComponent(tag)}`).json()
+      const parsed = MonitorResponseSchema.parse(data)
+      return parsed.monitor
     },
 
     create: async (body: CreateMonitorBody): Promise<Monitor> => {
       const data = await client.post("monitors", { json: body }).json()
-      return MonitorResponseSchema.parse(data)
+      const parsed = MonitorResponseSchema.parse(data)
+      return parsed.monitor
     },
 
-    update: async (id: number, body: UpdateMonitorBody): Promise<Monitor> => {
-      const data = await client.patch(`monitors/${id}`, { json: body }).json()
-      return MonitorResponseSchema.parse(data)
+    update: async (tag: string, body: UpdateMonitorBody): Promise<Monitor> => {
+      const data = await client.patch(`monitors/${encodeURIComponent(tag)}`, { json: body }).json()
+      const parsed = MonitorResponseSchema.parse(data)
+      return parsed.monitor
     },
 
-    delete: async (id: number): Promise<void> => {
-      await client.delete(`monitors/${id}`)
+    deactivate: async (tag: string): Promise<Monitor> => {
+      const data = await client
+        .patch(`monitors/${encodeURIComponent(tag)}`, { json: { status: "INACTIVE" } })
+        .json()
+      const parsed = MonitorResponseSchema.parse(data)
+      return parsed.monitor
     },
   }
 }

@@ -1,9 +1,9 @@
 import type { IncidentsApi } from "@/api/incidents"
 import type { Incident } from "@/api/types"
 import type { IncidentManifest } from "@/manifest/types"
+import type { StateFile } from "../../reconciler/engine"
 import type { Change } from "../diff"
 import { diff, stripServerFields } from "../diff"
-import type { StateFile } from "./alert-config"
 
 export async function reconcileIncidents(
   api: IncidentsApi,
@@ -32,7 +32,7 @@ export async function reconcileIncidents(
     }
   }
 
-  return diff(desiredMap, actualMap, stripServerFields, {
+  return diff(desiredMap, actualMap, normalizeIncident, {
     deleteOrphans: opts.deleteOrphans,
   })
 }
@@ -46,12 +46,27 @@ function findNameById(stateMap: Record<string, number>, id: number): string | un
 
 function incidentFromApi(incident: Incident): Record<string, unknown> {
   return {
-    title: incident.title,
-    state: incident.state,
-    affectedMonitors: incident.affectedMonitors,
-    updates: incident.updates,
+    kind: "Incident",
+    metadata: {},
+    spec: {
+      title: incident.title,
+      startDatetime: incident.start_date_time,
+      affectedMonitors: incident.monitors.map((m) => ({
+        tag: m.monitor_tag,
+        impact: m.impact,
+      })),
+    },
     id: incident.id,
-    createdAt: incident.createdAt,
-    updatedAt: incident.updatedAt,
+    created_at: incident.created_at,
+    updated_at: incident.updated_at,
   }
+}
+
+function normalizeIncident(obj: Record<string, unknown>): Record<string, unknown> {
+  const cleaned = stripServerFields(obj)
+  const spec = cleaned.spec as Record<string, unknown> | undefined
+  if (spec) {
+    delete spec.state
+  }
+  return cleaned
 }

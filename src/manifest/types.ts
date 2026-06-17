@@ -1,7 +1,5 @@
 import type { z } from "zod"
 import type {
-  AlertConfigManifestSchema,
-  AlertTriggerManifestSchema,
   AnyManifestSchema,
   ApiTypeDataSchema,
   DnsTypeDataSchema,
@@ -13,6 +11,7 @@ import type {
   MaintenanceManifestSchema,
   MonitorManifestSchema,
   MonitorSpecSchema,
+  NoneTypeDataSchema,
   PageManifestSchema,
   PingTypeDataSchema,
   SqlTypeDataSchema,
@@ -22,8 +21,6 @@ import type {
 
 export type MonitorManifest = z.infer<typeof MonitorManifestSchema>
 export type PageManifest = z.infer<typeof PageManifestSchema>
-export type AlertTriggerManifest = z.infer<typeof AlertTriggerManifestSchema>
-export type AlertConfigManifest = z.infer<typeof AlertConfigManifestSchema>
 export type IncidentManifest = z.infer<typeof IncidentManifestSchema>
 export type MaintenanceManifest = z.infer<typeof MaintenanceManifestSchema>
 
@@ -41,3 +38,4 @@ export type HeartbeatTypeData = z.infer<typeof HeartbeatTypeDataSchema>
 export type GamedigTypeData = z.infer<typeof GamedigTypeDataSchema>
 export type GrpcTypeData = z.infer<typeof GrpcTypeDataSchema>
 export type GroupTypeData = z.infer<typeof GroupTypeDataSchema>
+export type NoneTypeData = z.infer<typeof NoneTypeDataSchema>

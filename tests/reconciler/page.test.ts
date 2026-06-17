@@ -7,20 +7,21 @@ import { reconcilePages } from "@/reconciler/resources/page"
 function mockPagesApi(pages: Page[]): PagesApi {
   return {
     list: async () => pages,
-    get: async () => ({}) as Page,
     create: async () => ({}) as Page,
     update: async () => ({}) as Page,
     delete: async () => {},
   }
 }
 
-function makePage(id: number, path: string, title: string): Page {
+function makePage(id: number, pagePath: string, title: string): Page {
   return {
     id,
-    path,
-    title,
-    header: "",
-    pageContent: "",
+    page_path: pagePath,
+    page_title: title,
+    page_header: "",
+    page_subheader: "",
+    page_logo: "",
+    page_settings: {},
     monitors: [],
   }
 }
@@ -77,9 +78,9 @@ describe("reconcilePages", () => {
     expect(changes[0]?.key).toBe("old-page")
   })
 
-  it("handles ~home path and detects UPDATE", async () => {
-    const api = mockPagesApi([makePage(1, "~home", "Home")])
-    const manifests = [makeManifest("~home", { title: "Home" })]
+  it("handles empty path for root page and detects UPDATE", async () => {
+    const api = mockPagesApi([makePage(1, "", "Home")])
+    const manifests = [makeManifest("", { title: "Home" })]
     const changes = await reconcilePages(api, manifests)
     expect(changes).toHaveLength(1)
     expect(changes[0]?.action === "UPDATE")

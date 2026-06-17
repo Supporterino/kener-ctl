@@ -1,27 +1,31 @@
 import type { KyInstance } from "ky"
-import type { CreateMaintenanceBody, Maintenance, UpdateMaintenanceBody } from "./types"
+import type { Maintenance, CreateMaintenanceBody, UpdateMaintenanceBody } from "./types"
 import { MaintenanceListResponseSchema, MaintenanceResponseSchema } from "./types"
 
 export function createMaintenancesApi(client: KyInstance) {
   return {
     list: async (): Promise<Maintenance[]> => {
       const data = await client.get("maintenances").json()
-      return MaintenanceListResponseSchema.parse(data)
+      const parsed = MaintenanceListResponseSchema.parse(data)
+      return parsed.maintenances
     },
 
     get: async (id: number): Promise<Maintenance> => {
       const data = await client.get(`maintenances/${id}`).json()
-      return MaintenanceResponseSchema.parse(data)
+      const parsed = MaintenanceResponseSchema.parse(data)
+      return parsed.maintenance
     },
 
     create: async (body: CreateMaintenanceBody): Promise<Maintenance> => {
       const data = await client.post("maintenances", { json: body }).json()
-      return MaintenanceResponseSchema.parse(data)
+      const parsed = MaintenanceResponseSchema.parse(data)
+      return parsed.maintenance
     },
 
     update: async (id: number, body: UpdateMaintenanceBody): Promise<Maintenance> => {
       const data = await client.patch(`maintenances/${id}`, { json: body }).json()
-      return MaintenanceResponseSchema.parse(data)
+      const parsed = MaintenanceResponseSchema.parse(data)
+      return parsed.maintenance
     },
 
     delete: async (id: number): Promise<void> => {

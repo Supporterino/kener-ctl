@@ -4,22 +4,26 @@ import { createPagesApi } from "@/api/pages"
 
 const mockPage = {
   id: 1,
-  path: "services",
-  title: "Services Status",
-  header: "Our Services",
-  pageContent: "# Status",
+  page_path: "services",
+  page_title: "Services Status",
+  page_header: "Our Services",
+  page_subheader: "# Status",
+  page_logo: "",
+  page_settings: {},
   monitors: [],
-  createdAt: "2025-01-01T00:00:00.000Z",
-  updatedAt: "2025-01-02T00:00:00.000Z",
+  created_at: "2025-01-01T00:00:00.000Z",
+  updated_at: "2025-01-02T00:00:00.000Z",
 }
 
 const mockPage2 = {
   id: 2,
-  path: "~home",
-  title: "Home",
-  header: "",
-  pageContent: "",
-  monitors: ["my-api"],
+  page_path: "",
+  page_title: "Home",
+  page_header: "",
+  page_subheader: "",
+  page_logo: "",
+  page_settings: {},
+  monitors: [{ monitor_tag: "my-api", position: 0 }],
 }
 
 function createMockKy(
@@ -67,52 +71,44 @@ function createMockKy(
 
 describe("pagesApi", () => {
   it("list returns all pages", async () => {
-    const client = createMockKy([mockPage, mockPage2])
+    const client = createMockKy({ pages: [mockPage, mockPage2] })
     const api = createPagesApi(client)
     const result = await api.list()
     expect(result).toHaveLength(2)
-    expect(result[0]?.path).toBe("services")
-    expect(result[1]?.path).toBe("~home")
-  })
-
-  it("get returns single page", async () => {
-    const client = createMockKy(mockPage)
-    const api = createPagesApi(client)
-    const result = await api.get(1)
-    expect(result.id).toBe(1)
-    expect(result.path).toBe("services")
+    expect(result[0]?.page_path).toBe("services")
+    expect(result[1]?.page_path).toBe("")
   })
 
   it("create sends POST with body", async () => {
-    const client = createMockKy(mockPage)
+    const client = createMockKy({ page: mockPage })
     const api = createPagesApi(client)
-    const result = await api.create({ path: "services", title: "Services Status" })
-    expect(result.path).toBe("services")
+    const result = await api.create({ page_path: "services", page_title: "Services Status" })
+    expect(result.page_path).toBe("services")
   })
 
-  it("update sends PATCH with body", async () => {
-    const client = createMockKy(mockPage)
+  it("update sends PATCH with body by page_path", async () => {
+    const client = createMockKy({ page: mockPage })
     const api = createPagesApi(client)
-    const result = await api.update(1, { title: "New Title" })
-    expect(result.path).toBe("services")
+    const result = await api.update("services", { page_title: "New Title" })
+    expect(result.page_path).toBe("services")
   })
 
-  it("delete sends DELETE request", async () => {
+  it("delete sends DELETE request by page_path", async () => {
     const client = createMockKy({ message: "ok" })
     const api = createPagesApi(client)
-    await expect(api.delete(1)).resolves.toBeUndefined()
+    await expect(api.delete("services")).resolves.toBeUndefined()
   })
 
   it("handles 404 not found", async () => {
     const client = createMockKy({ error: "Not found" }, 404, "Not Found")
     const api = createPagesApi(client)
-    await expect(api.get(999)).rejects.toThrow("404")
+    await expect(api.update("nonexistent", { page_title: "Hi" })).rejects.toThrow("404")
   })
 
   it("handles 400 validation error", async () => {
     const client = createMockKy({ error: "Invalid" }, 400, "Bad Request")
     const api = createPagesApi(client)
-    await expect(api.create({ path: "", title: "" })).rejects.toThrow("400")
+    await expect(api.create({ page_path: "", page_title: "" })).rejects.toThrow("400")
   })
 
   it("handles 401 auth error", async () => {

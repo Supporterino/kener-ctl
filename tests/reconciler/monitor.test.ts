@@ -10,23 +10,26 @@ function mockMonitorsApi(monitors: Monitor[]): MonitorsApi {
     get: async () => ({}) as Monitor,
     create: async () => ({}) as Monitor,
     update: async () => ({}) as Monitor,
-    delete: async () => {},
+    deactivate: async () => ({}) as Monitor,
   }
 }
 
 function makeMonitor(tag: string, overrides: Partial<Monitor> = {}): Monitor {
   return {
-    id: 1,
     tag,
     name: tag,
     description: "",
-    type: "API",
-    cronSchedule: "* * * * *",
-    defaultStatus: "DOWN",
-    createdAt: "2025-01-01T00:00:00.000Z",
-    updatedAt: "2025-01-01T00:00:00.000Z",
+    image: "",
+    cron: "* * * * *",
+    default_status: "DOWN",
+    status: "ACTIVE",
+    monitor_type: "API",
+    include_degraded_in_downtime: false,
+    is_hidden: false,
+    created_at: "2025-01-01T00:00:00.000Z",
+    updated_at: "2025-01-01T00:00:00.000Z",
     ...overrides,
-  }
+  } as Monitor
 }
 
 function makeManifest(tag: string, overrides: Partial<MonitorManifest> = {}): MonitorManifest {
@@ -55,7 +58,7 @@ describe("reconcileMonitors", () => {
     expect(changes[0]?.key).toBe("my-api")
   })
 
-  it("detects UPDATE when monitor exists remotely (structures always differ)", async () => {
+  it("detects UPDATE when monitor exists remotely", async () => {
     const api = mockMonitorsApi([makeMonitor("my-api")])
     const manifests = [makeManifest("my-api")]
     const changes = await reconcileMonitors(api, manifests)
@@ -64,7 +67,7 @@ describe("reconcileMonitors", () => {
   })
 
   it("detects UPDATE when remote differs in a spec field", async () => {
-    const api = mockMonitorsApi([makeMonitor("my-api", { cronSchedule: "* * * * *" })])
+    const api = mockMonitorsApi([makeMonitor("my-api", { cron: "* * * * *" })])
     const manifests = [
       makeManifest("my-api", {
         spec: {
@@ -97,10 +100,7 @@ describe("reconcileMonitors", () => {
   })
 
   it("filters by tag option", async () => {
-    const api = mockMonitorsApi([
-      makeMonitor("api-a", { id: 10 }),
-      makeMonitor("api-b", { id: 20 }),
-    ])
+    const api = mockMonitorsApi([makeMonitor("api-a"), makeMonitor("api-b")])
     const manifests = [makeManifest("api-a"), makeManifest("api-b")]
     const changes = await reconcileMonitors(api, manifests, { tag: "api-a" })
     expect(changes).toHaveLength(1)
@@ -117,9 +117,9 @@ describe("reconcileMonitors", () => {
 
   it("handles mix of CREATE, UPDATE, DELETE", async () => {
     const api = mockMonitorsApi([
-      makeMonitor("exists", { id: 1, name: "Exists" }),
-      makeMonitor("changed", { id: 2, name: "Old Name" }),
-      makeMonitor("orphan", { id: 3 }),
+      makeMonitor("exists", { name: "Exists" }),
+      makeMonitor("changed", { name: "Old Name" }),
+      makeMonitor("orphan"),
     ])
     const manifests = [
       makeManifest("exists", {

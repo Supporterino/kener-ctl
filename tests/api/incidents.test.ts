@@ -5,19 +5,21 @@ import { createIncidentsApi } from "@/api/incidents"
 const mockIncident = {
   id: 1,
   title: "API Downtime",
-  state: "INVESTIGATING" as const,
-  affectedMonitors: [{ tag: "my-api", impact: "DOWN" as const }],
-  updates: [{ message: "Investigating", state: "INVESTIGATING" as const }],
-  createdAt: "2025-01-01T00:00:00.000Z",
-  updatedAt: "2025-01-02T00:00:00.000Z",
+  start_date_time: 1765468800,
+  end_date_time: null,
+  state: "INVESTIGATING",
+  monitors: [{ monitor_tag: "my-api", impact: "DOWN" as const }],
+  created_at: "2025-01-01T00:00:00.000Z",
+  updated_at: "2025-01-02T00:00:00.000Z",
 }
 
 const mockIncident2 = {
   id: 2,
   title: "DB Slow",
-  state: "RESOLVED" as const,
-  affectedMonitors: [],
-  updates: [],
+  start_date_time: 1765472400,
+  end_date_time: 1765476000,
+  state: "RESOLVED",
+  monitors: [],
 }
 
 function createMockKy(
@@ -65,7 +67,7 @@ function createMockKy(
 
 describe("incidentsApi", () => {
   it("list returns all incidents", async () => {
-    const client = createMockKy([mockIncident, mockIncident2])
+    const client = createMockKy({ incidents: [mockIncident, mockIncident2] })
     const api = createIncidentsApi(client)
     const result = await api.list()
     expect(result).toHaveLength(2)
@@ -74,22 +76,26 @@ describe("incidentsApi", () => {
   })
 
   it("get returns single incident", async () => {
-    const client = createMockKy(mockIncident)
+    const client = createMockKy({ incident: mockIncident })
     const api = createIncidentsApi(client)
     const result = await api.get(1)
     expect(result.id).toBe(1)
     expect(result.title).toBe("API Downtime")
   })
 
-  it("create sends POST with body", async () => {
-    const client = createMockKy(mockIncident)
+  it("create sends POST with unix timestamp", async () => {
+    const client = createMockKy({ incident: mockIncident })
     const api = createIncidentsApi(client)
-    const result = await api.create({ title: "API Downtime" })
+    const result = await api.create({
+      title: "API Downtime",
+      start_date_time: 1765468800,
+    })
     expect(result.title).toBe("API Downtime")
+    expect(result.start_date_time).toBe(1765468800)
   })
 
   it("update sends PATCH with body", async () => {
-    const client = createMockKy(mockIncident)
+    const client = createMockKy({ incident: mockIncident })
     const api = createIncidentsApi(client)
     const result = await api.update(1, { title: "Updated Incident" })
     expect(result.title).toBe("API Downtime")
@@ -110,7 +116,7 @@ describe("incidentsApi", () => {
   it("handles 400 validation error", async () => {
     const client = createMockKy({ error: "Invalid" }, 400, "Bad Request")
     const api = createIncidentsApi(client)
-    await expect(api.create({ title: "" })).rejects.toThrow("400")
+    await expect(api.create({ title: "", start_date_time: 0 })).rejects.toThrow("400")
   })
 
   it("handles 401 auth error", async () => {

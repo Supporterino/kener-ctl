@@ -111,18 +111,18 @@ describe("diff", () => {
 })
 
 describe("stripServerFields", () => {
-  it("removes id, createdAt, updatedAt", () => {
+  it("removes id, created_at, updated_at", () => {
     const obj = {
       id: 1,
       name: "test",
-      createdAt: "2025-01-01T00:00:00Z",
-      updatedAt: "2025-01-02T00:00:00Z",
+      created_at: "2025-01-01T00:00:00Z",
+      updated_at: "2025-01-02T00:00:00Z",
       value: 42,
     }
     const result = stripServerFields(obj)
     expect(result).not.toHaveProperty("id")
-    expect(result).not.toHaveProperty("createdAt")
-    expect(result).not.toHaveProperty("updatedAt")
+    expect(result).not.toHaveProperty("created_at")
+    expect(result).not.toHaveProperty("updated_at")
     expect(result.name).toBe("test")
     expect(result.value).toBe(42)
   })
@@ -141,8 +141,8 @@ describe("diff with stripServerFields", () => {
       id: 42,
       name: "A",
       value: 1,
-      createdAt: "2025-01-01T00:00:00Z",
-      updatedAt: "2025-01-02T00:00:00Z",
+      created_at: "2025-01-01T00:00:00Z",
+      updated_at: "2025-01-02T00:00:00Z",
     }
 
     const desiredMap = new Map([["a", desired]])
@@ -155,7 +155,7 @@ describe("diff with stripServerFields", () => {
 
   it("yields UPDATE when server fields AND spec fields differ", () => {
     const desired = { name: "B", value: 2 }
-    const actual = { id: 42, name: "A", value: 1, createdAt: "2025-01-01T00:00:00Z" }
+    const actual = { id: 42, name: "A", value: 1, created_at: "2025-01-01T00:00:00Z" }
 
     const desiredMap = new Map([["a", desired]])
     const actualMap: Map<string, Record<string, unknown>> = new Map([["a", actual]])

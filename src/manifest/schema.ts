@@ -18,6 +18,7 @@ export const MonitorTypeEnum = z.enum([
   "GAMEDIG",
   "GRPC",
   "GROUP",
+  "NONE",
 ])
 
 export const MonitorStatusEnum = z.enum(["UP", "DOWN", "DEGRADED"])
@@ -103,6 +104,9 @@ export const GroupTypeDataSchema = z.object({
   monitorTags: z.array(z.string()),
 })
 
+// NONE type
+export const NoneTypeDataSchema = z.object({})
+
 export const MonitorTypeDataSchema = z.discriminatedUnion("_type", [
   ApiTypeDataSchema.extend({ _type: z.literal("API") }),
   PingTypeDataSchema.extend({ _type: z.literal("PING") }),
@@ -114,6 +118,7 @@ export const MonitorTypeDataSchema = z.discriminatedUnion("_type", [
   GamedigTypeDataSchema.extend({ _type: z.literal("GAMEDIG") }),
   GrpcTypeDataSchema.extend({ _type: z.literal("GRPC") }),
   GroupTypeDataSchema.extend({ _type: z.literal("GROUP") }),
+  NoneTypeDataSchema.extend({ _type: z.literal("NONE") }),
 ])
 
 export const MonitorSpecSchema = z.object({
@@ -169,52 +174,9 @@ export const PageSpecSchema = z.object({
 export const PageManifestSchema = z.object({
   kind: z.literal("Page"),
   metadata: z.object({
-    path: z.string().min(1),
+    path: z.string(),
   }),
   spec: PageSpecSchema,
-})
-
-// ─── AlertTrigger ───────────────────────────────────────────────────────────
-
-export const TriggerTypeEnum = z.enum(["WEBHOOK", "DISCORD", "SLACK", "EMAIL"])
-
-export const AlertTriggerSpecSchema = z.object({
-  type: TriggerTypeEnum,
-  webhookUrl: z.string().optional(),
-  emailAddresses: z.array(z.string()).optional(),
-  discordChannelId: z.string().optional(),
-})
-
-export const AlertTriggerManifestSchema = z.object({
-  kind: z.literal("AlertTrigger"),
-  metadata: z.object({
-    name: z.string().min(1),
-  }),
-  spec: AlertTriggerSpecSchema,
-})
-
-// ─── AlertConfig ────────────────────────────────────────────────────────────
-
-export const AlertTypeEnum = z.enum(["STATUS", "LATENCY", "UPTIME"])
-export const SeverityEnum = z.enum(["CRITICAL", "WARNING"])
-
-export const AlertConfigSpecSchema = z.object({
-  monitorTag: z.string().min(1),
-  alertType: AlertTypeEnum,
-  alertValue: z.string(),
-  failureThreshold: z.number().int().min(1).default(1),
-  successThreshold: z.number().int().min(1).default(2),
-  severity: SeverityEnum.default("WARNING"),
-  createIncident: z.boolean().default(false),
-  triggerNames: z.array(z.string()).default([]),
-})
-
-export const AlertConfigManifestSchema = z.object({
-  kind: z.literal("AlertConfig"),
-  metadata: z.object({
-    name: z.string().min(1),
-  }),
-  spec: AlertConfigSpecSchema,
 })
 
 // ─── Incident ───────────────────────────────────────────────────────────────
@@ -228,16 +190,10 @@ export const AffectedMonitorSchema = z.object({
   impact: IncidentImpactEnum,
 })
 
-export const IncidentUpdateSchema = z.object({
-  message: z.string().min(1),
-  state: IncidentStateEnum,
-})
-
 export const IncidentSpecSchema = z.object({
   title: z.string().min(1),
-  state: IncidentStateEnum.default("INVESTIGATING"),
+  startDatetime: z.number(),
   affectedMonitors: z.array(AffectedMonitorSchema).default([]),
-  updates: z.array(IncidentUpdateSchema).default([]),
 })
 
 export const IncidentManifestSchema = z.object({
@@ -253,9 +209,9 @@ export const IncidentManifestSchema = z.object({
 export const MaintenanceSpecSchema = z.object({
   title: z.string().min(1),
   monitors: z.array(z.string()).default([]),
-  startDatetime: z.string().datetime(),
-  endDatetime: z.string().datetime(),
-  rrule: z.string().optional(),
+  startDatetime: z.number(),
+  rrule: z.string(),
+  durationSeconds: z.number().int().positive(),
 })
 
 export const MaintenanceManifestSchema = z.object({
@@ -271,8 +227,13 @@ export const MaintenanceManifestSchema = z.object({
 export const AnyManifestSchema = z.discriminatedUnion("kind", [
   MonitorManifestSchema,
   PageManifestSchema,
-  AlertTriggerManifestSchema,
-  AlertConfigManifestSchema,
   IncidentManifestSchema,
   MaintenanceManifestSchema,
 ])
+
+// ─── Deprecated kinds ───────────────────────────────────────────────────────
+
+export const DEPRECATED_KINDS = ["AlertTrigger", "AlertConfig"] as const
+
+export const DEPRECATED_KIND_MESSAGE =
+  "this endpoint is not yet available in Kener v4. Remove this manifest or comment it out."

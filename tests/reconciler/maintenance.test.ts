@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test"
 import type { MaintenancesApi } from "@/api/maintenances"
 import type { Maintenance } from "@/api/types"
 import type { MaintenanceManifest } from "@/manifest/types"
-import type { StateFile } from "@/reconciler/resources/alert-config"
+import type { StateFile } from "@/reconciler/engine"
 import { reconcileMaintenances } from "@/reconciler/resources/maintenance"
 
 function mockMaintenancesApi(maintenances: Maintenance[]): MaintenancesApi {
@@ -19,9 +19,14 @@ function makeMaintenance(id: number, title: string): Maintenance {
   return {
     id,
     title,
+    description: "",
+    start_date_time: 1765468800,
+    rrule: "FREQ=WEEKLY;BYDAY=MO",
+    duration_seconds: 7200,
+    status: "SCHEDULED",
     monitors: [],
-    startDatetime: "2025-06-16T00:00:00.000Z",
-    endDatetime: "2025-06-16T02:00:00.000Z",
+    created_at: "2025-01-01T00:00:00.000Z",
+    updated_at: "2025-01-02T00:00:00.000Z",
   }
 }
 
@@ -35,8 +40,9 @@ function makeManifest(
     spec: {
       title: name,
       monitors: [],
-      startDatetime: "2025-06-16T00:00:00.000Z",
-      endDatetime: "2025-06-16T02:00:00.000Z",
+      startDatetime: 1765468800,
+      rrule: "FREQ=WEEKLY;BYDAY=MO",
+      durationSeconds: 7200,
       ...specOverrides,
     },
   }
@@ -55,6 +61,7 @@ describe("reconcileMaintenances", () => {
   it("detects UPDATE when state maps to existing maintenance", async () => {
     const stateFile: StateFile = {
       version: 1,
+      incidents: {},
       maintenances: { "maint-1": 1 },
     }
     const api = mockMaintenancesApi([makeMaintenance(1, "DB Migration")])
@@ -67,6 +74,7 @@ describe("reconcileMaintenances", () => {
   it("detects UPDATE when maintenance field differs", async () => {
     const stateFile: StateFile = {
       version: 1,
+      incidents: {},
       maintenances: { "maint-1": 1 },
     }
     const api = mockMaintenancesApi([makeMaintenance(1, "Old Title")])
@@ -80,6 +88,7 @@ describe("reconcileMaintenances", () => {
   it("detects DELETE orphan with deleteOrphans enabled", async () => {
     const stateFile: StateFile = {
       version: 1,
+      incidents: {},
       maintenances: { "old-maint": 99 },
     }
     const api = mockMaintenancesApi([makeMaintenance(99, "Old Maintenance")])

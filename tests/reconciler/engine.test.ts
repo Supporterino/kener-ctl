@@ -35,26 +35,72 @@ function writeManifest(manifestDir: string, filename: string, content: string) {
   writeFileSync(join(manifestDir, filename), content)
 }
 
-function createMockKy(
-  overrides: { listData?: Record<string, unknown[]>; createId?: number; updateId?: number } = {},
-): KyInstance {
-  const listData = overrides.listData ?? {}
-  return {
-    get: (path: string | URL) => ({
-      json: async () => {
-        const p = typeof path === "string" ? path : path.toString()
-        for (const [key, data] of Object.entries(listData)) {
-          if (p.includes(key)) return data
-        }
-        return []
+function createMockKy(): KyInstance {
+  const wrappers: Record<string, unknown> = {
+    monitors: { monitors: [] },
+    pages: { pages: [] },
+    incidents: { incidents: [] },
+    maintenances: { maintenances: [] },
+  }
+
+  const singularWrappers: Record<string, unknown> = {
+    monitors: {
+      monitor: {
+        tag: "t",
+        name: "t",
+        monitor_type: "NONE",
+        cron: "* * * * *",
+        default_status: "DOWN",
       },
-    }),
-    post: () => ({
-      json: async () => ({ id: overrides.createId ?? 1 }),
-    }),
-    patch: () => ({
-      json: async () => ({ id: overrides.updateId ?? 1 }),
-    }),
+    },
+    pages: { page: { id: 1, page_path: "", page_title: "t" } },
+    incidents: { incident: { id: 1, title: "t", start_date_time: 0 } },
+    maintenances: {
+      maintenance: {
+        id: 1,
+        title: "t",
+        start_date_time: 0,
+        rrule: "r",
+        duration_seconds: 0,
+        status: "s",
+      },
+    },
+  }
+
+  return {
+    get: (path: string | URL) => {
+      const p = typeof path === "string" ? path : path.toString()
+      return {
+        json: async () => {
+          for (const [key, data] of Object.entries(wrappers)) {
+            if (p.includes(key)) return data
+          }
+          return { id: 1 }
+        },
+      }
+    },
+    post: (path: string | URL) => {
+      const p = typeof path === "string" ? path : path.toString()
+      return {
+        json: async () => {
+          for (const [key, data] of Object.entries(singularWrappers)) {
+            if (p.includes(key)) return data
+          }
+          return { id: 1 }
+        },
+      }
+    },
+    patch: (path: string | URL) => {
+      const p = typeof path === "string" ? path : path.toString()
+      return {
+        json: async () => {
+          for (const [key, data] of Object.entries(singularWrappers)) {
+            if (p.includes(key)) return data
+          }
+          return { id: 1 }
+        },
+      }
+    },
     delete: () => Promise.resolve(),
   } as unknown as KyInstance
 }
@@ -107,13 +153,13 @@ spec:
     const dir = createManifestDir("kind")
     writeManifest(
       dir,
-      "trigger.yaml",
-      `kind: AlertTrigger
+      "incident.yaml",
+      `kind: Incident
 metadata:
-  name: ops-slack
+  name: outage-1
 spec:
-  type: SLACK
-  webhookUrl: https://hooks.slack.com/test`,
+  title: API Down
+  startDatetime: 1765468800`,
     )
     writeManifest(
       dir,
@@ -134,10 +180,36 @@ spec:
       deleteOrphans: false,
       concurrency: 4,
       stateFilePath: sfp,
-      kind: "AlertTrigger",
+      kind: "Incident",
     })
     expect(result.changes.length).toBeGreaterThan(0)
-    expect(result.changes.every((c) => c.kind === "AlertTrigger")).toBe(true)
+    expect(result.changes.every((c) => c.kind === "Incident")).toBe(true)
+  })
+
+  it("rejects deprecated AlertTrigger kind", async () => {
+    const dir = createManifestDir("deprecated")
+    writeManifest(
+      dir,
+      "trigger.yaml",
+      `kind: AlertTrigger
+metadata:
+  name: ops-slack
+spec:
+  type: SLACK
+  webhookUrl: https://hooks.slack.com/test`,
+    )
+    const client = createMockKy()
+    const sfp = stateFilePathForDir(dir)
+    await expect(
+      reconcile({
+        client,
+        manifestDir: dir,
+        dryRun: true,
+        deleteOrphans: false,
+        concurrency: 4,
+        stateFilePath: sfp,
+      }),
+    ).rejects.toThrow("Manifest validation failed")
   })
 
   it("plan does not mutate (dryRun=true)", async () => {
@@ -183,7 +255,7 @@ spec:
 })
 
 describe("engine dependency ordering", () => {
-  it("calls list in apply order: triggers → monitors → pages → alertConfigs → incidents → maintenances", async () => {
+  it("calls list in apply order: monitors → pages → incidents → maintenances", async () => {
     const dir = createManifestDir("order")
     const callOrder: string[] = []
     const mockClient = {
@@ -192,26 +264,85 @@ describe("engine dependency ordering", () => {
         return {
           json: async () => {
             callOrder.push(p)
+            if (p.includes("monitors")) return { monitors: [] }
+            if (p.includes("pages")) return { pages: [] }
+            if (p.includes("incidents")) return { incidents: [] }
+            if (p.includes("maintenances")) return { maintenances: [] }
             return []
           },
         }
       },
-      post: () => ({ json: async () => ({ id: 1 }) }),
-      patch: () => ({ json: async () => ({ id: 1 }) }),
+      post: (path: string | URL) => {
+        const p = typeof path === "string" ? path : path.toString()
+        return {
+          json: async () => {
+            if (p.includes("monitors"))
+              return {
+                monitor: {
+                  tag: "m",
+                  name: "m",
+                  monitor_type: "API",
+                  cron: "* * * * *",
+                  default_status: "DOWN",
+                },
+              }
+            if (p.includes("pages")) return { page: { id: 1, page_path: "p", page_title: "p" } }
+            if (p.includes("incidents"))
+              return { incident: { id: 1, title: "i", start_date_time: 0 } }
+            if (p.includes("maintenances"))
+              return {
+                maintenance: {
+                  id: 1,
+                  title: "m",
+                  start_date_time: 0,
+                  rrule: "r",
+                  duration_seconds: 0,
+                  status: "s",
+                },
+              }
+            return { id: 1 }
+          },
+        }
+      },
+      patch: (path: string | URL) => {
+        const p = typeof path === "string" ? path : path.toString()
+        return {
+          json: async () => {
+            if (p.includes("monitors"))
+              return {
+                monitor: {
+                  tag: "m",
+                  name: "m",
+                  monitor_type: "API",
+                  cron: "* * * * *",
+                  default_status: "DOWN",
+                },
+              }
+            if (p.includes("pages")) return { page: { id: 1, page_path: "p", page_title: "p" } }
+            if (p.includes("incidents"))
+              return { incident: { id: 1, title: "i", start_date_time: 0 } }
+            if (p.includes("maintenances"))
+              return {
+                maintenance: {
+                  id: 1,
+                  title: "m",
+                  start_date_time: 0,
+                  rrule: "r",
+                  duration_seconds: 0,
+                  status: "s",
+                },
+              }
+            return { id: 1 }
+          },
+        }
+      },
       delete: () => Promise.resolve(),
     } as unknown as KyInstance
 
     writeManifest(
       dir,
       "all.yaml",
-      `kind: AlertTrigger
-metadata:
-  name: t
-spec:
-  type: SLACK
-  webhookUrl: https://e.com
----
-kind: Monitor
+      `kind: Monitor
 metadata:
   tag: m
 spec:
@@ -224,27 +355,21 @@ metadata:
 spec:
   title: p
 ---
-kind: AlertConfig
-metadata:
-  name: a
-spec:
-  monitorTag: m
-  alertType: STATUS
-  alertValue: DOWN
----
 kind: Incident
 metadata:
   name: i
 spec:
   title: i
+  startDatetime: 1765468800
 ---
 kind: Maintenance
 metadata:
   name: mnt
 spec:
   title: mnt
-  startDatetime: "2025-06-16T00:00:00.000Z"
-  endDatetime: "2025-06-16T02:00:00.000Z"`,
+  startDatetime: 1765468800
+  rrule: FREQ=WEEKLY
+  durationSeconds: 3600`,
     )
 
     const sfp = stateFilePathForDir(dir)
@@ -257,12 +382,10 @@ spec:
       stateFilePath: sfp,
     })
 
-    expect(callOrder[0]).toBe("alert-triggers")
-    expect(callOrder[1]).toBe("monitors")
-    expect(callOrder[2]).toBe("pages")
-    expect(callOrder[3]).toBe("alert-configs")
-    expect(callOrder[4]).toBe("incidents")
-    expect(callOrder[5]).toBe("maintenances")
+    expect(callOrder[0]).toBe("monitors")
+    expect(callOrder[1]).toBe("pages")
+    expect(callOrder[2]).toBe("incidents")
+    expect(callOrder[3]).toBe("maintenances")
   })
 })
 
@@ -279,7 +402,6 @@ describe("state file management", () => {
       version: 1,
       incidents: { "outage-1": 42 },
       maintenances: { "maint-1": 7 },
-      alertConfigs: { "cfg-1": 3 },
     }
     saveStateFile(path, state)
     const loaded = loadStateFile(path)
@@ -287,12 +409,15 @@ describe("state file management", () => {
     expect(loaded?.version).toBe(1)
     expect(loaded?.incidents).toEqual({ "outage-1": 42 })
     expect(loaded?.maintenances).toEqual({ "maint-1": 7 })
-    expect(loaded?.alertConfigs).toEqual({ "cfg-1": 3 })
   })
 
   it("saveStateFile creates parent directories and saves file", () => {
     const path = join(baseDir, "nested", "state.json")
-    saveStateFile(path, { version: 1 })
+    saveStateFile(path, {
+      version: 1,
+      incidents: {},
+      maintenances: {},
+    })
     expect(existsSync(path)).toBe(true)
   })
 })
@@ -305,7 +430,10 @@ describe("engine error handling", () => {
         const p = typeof path === "string" ? path : path.toString()
         return {
           json: async () => {
-            if (p.includes("alert-triggers")) return []
+            if (p.includes("monitors")) return { monitors: [] }
+            if (p.includes("pages")) return { pages: [] }
+            if (p.includes("incidents")) return { incidents: [] }
+            if (p.includes("maintenances")) return { maintenances: [] }
             return []
           },
         }
@@ -329,13 +457,13 @@ describe("engine error handling", () => {
 
     writeManifest(
       dir,
-      "trigger.yaml",
-      `kind: AlertTrigger
+      "incident.yaml",
+      `kind: Incident
 metadata:
-  name: trigger-err
+  name: incident-err
 spec:
-  type: SLACK
-  webhookUrl: https://example.com`,
+  title: Test
+  startDatetime: 1765468800`,
     )
 
     const sfp = stateFilePathForDir(dir)
@@ -349,55 +477,5 @@ spec:
     })
 
     expect(result.errors.length).toBeGreaterThan(0)
-  })
-
-  it("produces error for failed update", async () => {
-    const dir = createManifestDir("updaterr")
-    const errorClient = {
-      get: (path: string | URL) => {
-        const p = typeof path === "string" ? path : path.toString()
-        return {
-          json: async () => {
-            if (p.includes("alert-triggers")) {
-              return [{ id: 1, name: "existing", type: "SLACK", webhookUrl: "https://example.com" }]
-            }
-            return []
-          },
-        }
-      },
-      post: () => ({ json: async () => ({ id: 2 }) }),
-      patch: () => ({
-        json: async () => {
-          throw Object.assign(new Error("400 Bad Request"), {
-            response: { status: 400 },
-          })
-        },
-      }),
-      delete: () => Promise.resolve(),
-    } as unknown as KyInstance
-
-    writeManifest(
-      dir,
-      "trigger.yaml",
-      `kind: AlertTrigger
-metadata:
-  name: existing
-spec:
-  type: DISCORD
-  webhookUrl: https://discord.com/updated`,
-    )
-
-    const sfp = stateFilePathForDir(dir)
-    const result = await reconcile({
-      client: errorClient,
-      manifestDir: dir,
-      dryRun: false,
-      deleteOrphans: false,
-      concurrency: 4,
-      stateFilePath: sfp,
-    })
-
-    const failed = result.results.filter((r) => !r.success)
-    expect(failed.length).toBeGreaterThan(0)
   })
 })

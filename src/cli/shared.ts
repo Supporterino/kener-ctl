@@ -3,7 +3,7 @@ import type { ManifestKind } from "@/manifest/types"
 export const kindArg = {
   type: "string" as const,
   description: "Limit to one resource kind",
-  valueHint: "Monitor|Page|AlertTrigger|AlertConfig|Incident|Maintenance",
+  valueHint: "Monitor|Page|Incident|Maintenance",
 }
 
 export const tagArg = {
@@ -72,9 +72,7 @@ export const outputArg = {
 }
 
 export function isValidKind(value: string): value is ManifestKind {
-  return ["Monitor", "Page", "AlertTrigger", "AlertConfig", "Incident", "Maintenance"].includes(
-    value,
-  )
+  return ["Monitor", "Page", "Incident", "Maintenance"].includes(value)
 }
 
 export function formatKind(value: string): ManifestKind {
@@ -83,12 +81,6 @@ export function formatKind(value: string): ManifestKind {
     monitors: "Monitor",
     page: "Page",
     pages: "Page",
-    alerttrigger: "AlertTrigger",
-    alerttriggers: "AlertTrigger",
-    triggers: "AlertTrigger",
-    trigger: "AlertTrigger",
-    alertconfig: "AlertConfig",
-    alertconfigs: "AlertConfig",
     incident: "Incident",
     incidents: "Incident",
     maintenance: "Maintenance",

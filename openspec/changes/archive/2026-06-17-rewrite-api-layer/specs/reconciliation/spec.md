@@ -1,10 +1,4 @@
-# reconciliation
-
-## Purpose
-
-TBD
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Compute diff between desired and actual state
 The system SHALL compare a map of desired resources (from manifests) against a map of actual resources (from API) and produce a list of `Change` entries with actions: CREATE, UPDATE, DELETE, or NOOP. Actual resources SHALL be in the API wire format (snake_case fields) and SHALL be translated to manifest-compatible format before comparison via resource-specific `manifestFrom*()` functions.
@@ -127,3 +121,13 @@ The system SHALL atomically update the state file at `~/.config/kener-ctl/state/
 #### Scenario: Atomic write prevents corruption
 - **WHEN** the state file is being updated and the process crashes mid-write
 - **THEN** the previous state file is preserved intact (write to temp file, then rename)
+
+## REMOVED Requirements
+
+### Requirement: Reconcile AlertTriggers by name
+**Reason**: AlertTrigger REST API endpoints do not exist in Kener v4.
+**Migration**: Remove `kind: AlertTrigger` manifests. Re-add when Kener v4 exposes alert trigger endpoints.
+
+### Requirement: Reconcile AlertConfigs via state identity file
+**Reason**: AlertConfig REST API endpoints do not exist in Kener v4.
+**Migration**: Remove `kind: AlertConfig` manifests and any `alertConfigs` entries from state files. Re-add when Kener v4 exposes alert config endpoints.

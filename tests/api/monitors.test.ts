@@ -3,23 +3,22 @@ import type { createKenerClient } from "@/api/client"
 import { createMonitorsApi } from "@/api/monitors"
 
 const mockMonitor = {
-  id: 1,
   tag: "my-api",
   name: "My API",
   description: "API health check",
-  type: "API" as const,
-  cronSchedule: "* * * * *",
-  defaultStatus: "DOWN" as const,
-  createdAt: "2025-01-01T00:00:00.000Z",
-  updatedAt: "2025-01-02T00:00:00.000Z",
+  monitor_type: "API",
+  cron: "* * * * *",
+  default_status: "DOWN",
+  status: "ACTIVE",
+  created_at: "2025-01-01T00:00:00.000Z",
+  updated_at: "2025-01-02T00:00:00.000Z",
 }
 
 const mockMonitor2 = {
   ...mockMonitor,
-  id: 2,
   tag: "my-db",
   name: "My DB",
-  type: "PING" as const,
+  monitor_type: "PING",
 }
 
 function createMockKy(
@@ -67,7 +66,7 @@ function createMockKy(
 
 describe("monitorsApi", () => {
   it("list returns all monitors", async () => {
-    const client = createMockKy([mockMonitor, mockMonitor2])
+    const client = createMockKy({ monitors: [mockMonitor, mockMonitor2] })
     const api = createMonitorsApi(client)
     const result = await api.list()
     expect(result).toHaveLength(2)
@@ -75,44 +74,60 @@ describe("monitorsApi", () => {
     expect(result[1]?.tag).toBe("my-db")
   })
 
-  it("get returns single monitor", async () => {
-    const client = createMockKy(mockMonitor)
+  it("get returns single monitor by tag", async () => {
+    const client = createMockKy({ monitor: mockMonitor })
     const api = createMonitorsApi(client)
-    const result = await api.get(1)
-    expect(result.id).toBe(1)
+    const result = await api.get("my-api")
     expect(result.tag).toBe("my-api")
+    expect(result.monitor_type).toBe("API")
   })
 
   it("create sends POST with body", async () => {
-    const client = createMockKy(mockMonitor)
+    const client = createMockKy({ monitor: mockMonitor })
     const api = createMonitorsApi(client)
-    const result = await api.create({ tag: "my-api", name: "My API", type: "API" })
+    const result = await api.create({
+      tag: "my-api",
+      name: "My API",
+      monitor_type: "API",
+      cron: "* * * * *",
+      default_status: "DOWN",
+    })
     expect(result.tag).toBe("my-api")
   })
 
-  it("update sends PATCH with body", async () => {
-    const client = createMockKy(mockMonitor)
+  it("update sends PATCH with body by tag", async () => {
+    const client = createMockKy({ monitor: mockMonitor })
     const api = createMonitorsApi(client)
-    const result = await api.update(1, { name: "Updated Name" })
+    const result = await api.update("my-api", { name: "Updated Name" })
     expect(result.tag).toBe("my-api")
   })
 
-  it("delete sends DELETE request", async () => {
-    const client = createMockKy({ message: "ok" })
+  it("deactivate sends PATCH with status:INACTIVE", async () => {
+    const deactivated = { ...mockMonitor, status: "INACTIVE" }
+    const client = createMockKy({ monitor: deactivated })
     const api = createMonitorsApi(client)
-    await expect(api.delete(1)).resolves.toBeUndefined()
+    const result = await api.deactivate("my-api")
+    expect(result.status).toBe("INACTIVE")
   })
 
   it("handles 404 not found", async () => {
     const client = createMockKy({ error: "Not found" }, 404, "Not Found")
     const api = createMonitorsApi(client)
-    await expect(api.get(999)).rejects.toThrow("404")
+    await expect(api.get("nonexistent")).rejects.toThrow("404")
   })
 
   it("handles 400 validation error", async () => {
     const client = createMockKy({ message: "Invalid tag format" }, 400, "Bad Request")
     const api = createMonitorsApi(client)
-    await expect(api.create({ tag: "", name: "", type: "API" })).rejects.toThrow("400")
+    await expect(
+      api.create({
+        tag: "",
+        name: "",
+        monitor_type: "NONE",
+        cron: "* * * * *",
+        default_status: "DOWN",
+      }),
+    ).rejects.toThrow("400")
   })
 
   it("handles 401 auth error", async () => {

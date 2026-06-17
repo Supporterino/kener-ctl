@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync } from "node:fs"
 import { Glob } from "bun"
 import { loadAllYamlFromFile } from "@/util/yaml"
-import { AnyManifestSchema } from "./schema"
+import { AnyManifestSchema, DEPRECATED_KINDS, DEPRECATED_KIND_MESSAGE } from "./schema"
 import type { AnyManifest } from "./types"
 
 export interface LoadManifestsResult {
@@ -30,6 +30,20 @@ export function loadManifests(manifestDir: string): LoadManifestsResult {
         if (doc.data === null || doc.data === undefined) {
           continue
         }
+
+        const rawDoc = doc.data as Record<string, unknown>
+
+        if (
+          typeof rawDoc.kind === "string" &&
+          (DEPRECATED_KINDS as readonly string[]).includes(rawDoc.kind)
+        ) {
+          errors.push({
+            filePath,
+            message: `kind '${rawDoc.kind}' is not supported — ${DEPRECATED_KIND_MESSAGE}`,
+          })
+          continue
+        }
+
         const result = AnyManifestSchema.safeParse(doc.data)
         if (result.success) {
           manifests.push(result.data)

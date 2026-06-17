@@ -3,19 +3,79 @@ import { join } from "node:path"
 import chalk from "chalk"
 import { defineCommand } from "citty"
 import { consola } from "consola"
-import { createAlertConfigsApi } from "@/api/alert-configs"
+import { dump as yamlDump } from "js-yaml"
 import { createKenerClient } from "@/api/client"
 import { createIncidentsApi } from "@/api/incidents"
 import { createMaintenancesApi } from "@/api/maintenances"
 import { createMonitorsApi } from "@/api/monitors"
 import { createPagesApi } from "@/api/pages"
-import { createTriggersApi } from "@/api/triggers"
+import type { Incident, Maintenance, Monitor, Page } from "@/api/types"
 import { loadConfig } from "@/config/loader"
 import { ConfigError, NetworkError } from "@/util/errors"
 import { contextArg, formatKind, kindArg, overwriteFlag, manifestDirArg } from "./shared"
 
+function monitorToManifest(m: Monitor): Record<string, unknown> {
+  return {
+    kind: "Monitor",
+    metadata: { tag: m.tag },
+    spec: {
+      name: m.name,
+      description: m.description,
+      type: m.monitor_type,
+      categoryName: m.category_name,
+      cronSchedule: m.cron,
+      defaultStatus: m.default_status,
+      dayDegradedMinCount: m.day_degraded_minimum_count,
+      dayDownMinCount: m.day_down_minimum_count,
+      typeData: m.type_data,
+    },
+  }
+}
+
+function pageToManifest(p: Page): Record<string, unknown> {
+  return {
+    kind: "Page",
+    metadata: { path: p.page_path },
+    spec: {
+      title: p.page_title,
+      header: p.page_header,
+      pageContent: p.page_subheader,
+      monitors: p.monitors.map((m) => m.monitor_tag),
+    },
+  }
+}
+
+function incidentToManifest(i: Incident): Record<string, unknown> {
+  return {
+    kind: "Incident",
+    metadata: { name: String(i.id) },
+    spec: {
+      title: i.title,
+      startDatetime: i.start_date_time,
+      affectedMonitors: i.monitors.map((m) => ({
+        tag: m.monitor_tag,
+        impact: m.impact,
+      })),
+    },
+  }
+}
+
+function maintenanceToManifest(m: Maintenance): Record<string, unknown> {
+  return {
+    kind: "Maintenance",
+    metadata: { name: String(m.id) },
+    spec: {
+      title: m.title,
+      monitors: m.monitors.map((mon) => mon.monitor_tag),
+      startDatetime: m.start_date_time,
+      rrule: m.rrule,
+      durationSeconds: m.duration_seconds,
+    },
+  }
+}
+
 export function serializeToYaml(obj: unknown): string {
-  return JSON.stringify(obj, null, 2)
+  return yamlDump(obj, { indent: 2, lineWidth: -1, noRefs: true })
 }
 
 export const pullCommand = defineCommand({
@@ -40,29 +100,23 @@ export const pullCommand = defineCommand({
 
       const kinds = args.kind
         ? [formatKind(args.kind)]
-        : ["Monitor", "Page", "AlertTrigger", "AlertConfig", "Incident", "Maintenance"]
+        : ["Monitor", "Page", "Incident", "Maintenance"]
 
       for (const kind of kinds) {
         let resources: unknown[] = []
 
         switch (kind) {
           case "Monitor":
-            resources = await createMonitorsApi(client).list()
+            resources = (await createMonitorsApi(client).list()).map(monitorToManifest)
             break
           case "Page":
-            resources = await createPagesApi(client).list()
-            break
-          case "AlertTrigger":
-            resources = await createTriggersApi(client).list()
-            break
-          case "AlertConfig":
-            resources = await createAlertConfigsApi(client).list()
+            resources = (await createPagesApi(client).list()).map(pageToManifest)
             break
           case "Incident":
-            resources = await createIncidentsApi(client).list()
+            resources = (await createIncidentsApi(client).list()).map(incidentToManifest)
             break
           case "Maintenance":
-            resources = await createMaintenancesApi(client).list()
+            resources = (await createMaintenancesApi(client).list()).map(maintenanceToManifest)
             break
         }
 
@@ -78,11 +132,11 @@ export const pullCommand = defineCommand({
 
         for (const resource of resources) {
           const r = resource as Record<string, unknown>
+          const meta = r.metadata as Record<string, string> | undefined
           const fileName = `${String(
-            r.tag ??
-              r.path?.toString().replace(/[^a-zA-Z0-9_-]/g, "_") ??
-              r.name ??
-              r.id ??
+            meta?.tag ??
+              meta?.path?.toString().replace(/[^a-zA-Z0-9_-]/g, "_") ??
+              meta?.name ??
               "unnamed",
           )}.yaml`
           const filePath = join(kindDir, fileName)
