@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { MonitorSchema } from "@/api/types"
+import { CreatePageBodySchema, MonitorSchema } from "@/api/types"
 
 const makeMonitor = (overrides: Record<string, unknown> = {}) => ({
   tag: "test-monitor",
@@ -93,5 +93,34 @@ describe("StringOrBool coercion", () => {
         is_hidden: false,
       })),
     ).toThrow()
+  })
+})
+
+describe("CreatePageBodySchema monitors", () => {
+  it("accepts monitors as string array", () => {
+    const result = CreatePageBodySchema.parse({
+      page_path: "services",
+      page_title: "Services",
+      monitors: ["api-v1", "db-check"],
+    })
+    expect(result.monitors).toEqual(["api-v1", "db-check"])
+  })
+
+  it("rejects monitors as object array (server response format)", () => {
+    expect(() =>
+      CreatePageBodySchema.parse({
+        page_path: "services",
+        page_title: "Services",
+        monitors: [{ monitor_tag: "x", position: 0 }],
+      }),
+    ).toThrow()
+  })
+
+  it("allows omitting monitors", () => {
+    const result = CreatePageBodySchema.parse({
+      page_path: "home",
+      page_title: "Home",
+    })
+    expect(result.monitors).toBeUndefined()
   })
 })

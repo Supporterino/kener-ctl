@@ -423,6 +423,53 @@ describe("state file management", () => {
 })
 
 describe("engine error handling", () => {
+  it("sends page monitors as string array in mutation body", async () => {
+    const dir = createManifestDir("page-monitors")
+    let capturedBody: unknown = null
+
+    const mockClient = {
+      get: (path: string | URL) => {
+        const p = typeof path === "string" ? path : path.toString()
+        return { json: async () => (p.includes("pages") ? { pages: [] } : { monitors: [], pages: [], incidents: [], maintenances: [] }) }
+      },
+      post: (_path: string | URL, opts?: { json?: unknown }) => {
+        capturedBody = opts?.json
+        return { json: async () => ({ page: { id: 1, page_path: "svc", page_title: "Svcs" } }) }
+      },
+      patch: (_path: string | URL, opts?: { json?: unknown }) => {
+        capturedBody = opts?.json
+        return { json: async () => ({ page: { id: 1, page_path: "svc", page_title: "Svcs" } }) }
+      },
+      delete: () => Promise.resolve(),
+    } as unknown as KyInstance
+
+    writeManifest(
+      dir,
+      "page.yaml",
+      `kind: Page
+metadata:
+  path: svc
+spec:
+  title: Svcs
+  monitors:
+    - api-v1
+    - db-check`,
+    )
+
+    const sfp = stateFilePathForDir(dir)
+    await reconcile({
+      client: mockClient,
+      manifestDir: dir,
+      dryRun: false,
+      deleteOrphans: false,
+      concurrency: 4,
+      stateFilePath: sfp,
+    })
+
+    const body = capturedBody as Record<string, unknown>
+    expect(body).toBeDefined()
+    expect(body?.monitors).toEqual(["api-v1", "db-check"])
+  })
   it("collects API errors per resource without aborting", async () => {
     const dir = createManifestDir("errors")
     const errorClient = {
