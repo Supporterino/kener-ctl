@@ -2,23 +2,29 @@ import { z } from "zod"
 
 // ─── Monitor ───────────────────────────────────────────────────────────────
 
+const StringOrBool = z.preprocess((v) => {
+  if (v === "true") return true
+  if (v === "false") return false
+  return v
+}, z.boolean())
+
 export const MonitorSchema = z.object({
   tag: z.string(),
   name: z.string(),
-  description: z.string().default(""),
-  image: z.string().default(""),
+  description: z.string().nullable().default(""),
+  image: z.string().nullable().default(""),
   cron: z.string().default("* * * * *"),
   default_status: z.string().default("DOWN"),
   status: z.string().default("ACTIVE"),
-  category_name: z.string().optional(),
+  category_name: z.string().nullable().optional(),
   monitor_type: z.string(),
   type_data: z.record(z.unknown()).optional(),
-  day_degraded_minimum_count: z.number().optional(),
-  day_down_minimum_count: z.number().optional(),
-  include_degraded_in_downtime: z.boolean().default(false),
-  is_hidden: z.boolean().default(false),
-  monitor_settings_json: z.string().optional(),
-  external_url: z.string().optional(),
+  day_degraded_minimum_count: z.number().nullable().optional(),
+  day_down_minimum_count: z.number().nullable().optional(),
+  include_degraded_in_downtime: StringOrBool.default(false),
+  is_hidden: StringOrBool.default(false),
+  monitor_settings_json: z.record(z.unknown()).nullable().optional(),
+  external_url: z.string().nullable().optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 })
@@ -61,10 +67,10 @@ export const PageSchema = z.object({
   id: z.number(),
   page_path: z.string(),
   page_title: z.string(),
-  page_header: z.string().default(""),
-  page_subheader: z.string().default(""),
-  page_logo: z.string().default(""),
-  page_settings: z.record(z.unknown()).default({}),
+  page_header: z.string().nullable().default(""),
+  page_subheader: z.string().nullable().default(""),
+  page_logo: z.string().nullable().default(""),
+  page_settings: z.record(z.unknown()).nullable().default({}),
   monitors: z
     .array(
       z.object({
@@ -121,8 +127,8 @@ export const IncidentSchema = z.object({
   start_date_time: z.number(),
   end_date_time: z.number().nullable(),
   state: z.string(),
-  incident_type: z.string().optional(),
-  incident_source: z.string().optional(),
+  incident_type: z.string().nullable().optional(),
+  incident_source: z.string().nullable().optional(),
   monitors: z.array(IncidentMonitorRefSchema).default([]),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
@@ -160,7 +166,7 @@ export const MaintenanceMonitorRefSchema = z.object({
 export const MaintenanceSchema = z.object({
   id: z.number(),
   title: z.string(),
-  description: z.string().default(""),
+  description: z.string().nullable().default(""),
   start_date_time: z.number(),
   rrule: z.string(),
   duration_seconds: z.number(),

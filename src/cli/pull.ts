@@ -20,13 +20,13 @@ function monitorToManifest(m: Monitor): Record<string, unknown> {
     metadata: { tag: m.tag },
     spec: {
       name: m.name,
-      description: m.description,
+      description: m.description ?? "",
       type: m.monitor_type,
-      categoryName: m.category_name,
+      categoryName: m.category_name ?? undefined,
       cronSchedule: m.cron,
       defaultStatus: m.default_status,
-      dayDegradedMinCount: m.day_degraded_minimum_count,
-      dayDownMinCount: m.day_down_minimum_count,
+      dayDegradedMinCount: m.day_degraded_minimum_count ?? undefined,
+      dayDownMinCount: m.day_down_minimum_count ?? undefined,
       typeData: m.type_data,
     },
   }
