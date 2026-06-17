@@ -342,10 +342,7 @@ async function executeMutation(
         page_title: (spec.title as string) ?? pagePath,
         page_header: spec.header as string | undefined,
         page_subheader: spec.pageContent as string | undefined,
-        monitors: (spec.monitors as string[] | undefined)?.map((tag: string, idx: number) => ({
-          monitor_tag: tag,
-          position: idx,
-        })),
+        monitors: spec.monitors as string[] | undefined,
       }
       if (change.action === "CREATE") {
         const result = await apis.pagesApi.create(body)

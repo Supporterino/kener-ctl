@@ -101,14 +101,7 @@ export const CreatePageBodySchema = z.object({
   page_subheader: z.string().optional(),
   page_logo: z.string().optional(),
   page_settings: z.record(z.unknown()).optional(),
-  monitors: z
-    .array(
-      z.object({
-        monitor_tag: z.string(),
-        position: z.number(),
-      }),
-    )
-    .optional(),
+  monitors: z.array(z.string()).optional(),
 })
 
 export const UpdatePageBodySchema = CreatePageBodySchema.partial()
