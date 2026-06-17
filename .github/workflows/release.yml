@@ -111,6 +111,7 @@ jobs:
           VERSION="${TAG#v}"
 
           gh release download "$TAG" \
+            --repo supporterino/kener-ctl \
             -p "kener-ctl-darwin-arm64" \
             -p "kener-ctl-darwin-x64" \
             --dir binaries
